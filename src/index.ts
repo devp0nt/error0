@@ -3,6 +3,7 @@ import { type AxiosError, HttpStatusCode, isAxiosError } from 'axios'
 import get from 'lodash/get.js'
 import { ZodError } from 'zod'
 
+// TODO: В эррор0 добавить ориджинал
 // TODO: store tags as array from all causes
 // TODO: not use self stack if toError0
 // TODO: fix default message in extended error0, should be used in constuctor of Error0
