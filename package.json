@@ -63,10 +63,11 @@
     "pack:dry": "npm pack --dry-run",
     "prepare": "husky"
   },
-  "dependencies": {
+  "dependencies": {},
+  "peerDependencies": {
     "@devp0nt/meta0": "^1.0.0-next.2",
-    "axios": "^1.12.2",
-    "zod": "^4.1.9"
+    "zod": "^4.1.9",
+    "axios": "^1.12.2"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",

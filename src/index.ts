@@ -580,5 +580,5 @@ export const e0s = {
   Default: Error0,
   Expected: Error0.extend({
     defaultExpected: true,
-  }),
+  }) as typeof Error0,
 } satisfies Error0.Collection

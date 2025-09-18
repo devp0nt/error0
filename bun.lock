@@ -3,11 +3,6 @@
   "workspaces": {
     "": {
       "name": "@devp0nt/error0",
-      "dependencies": {
-        "@devp0nt/meta0": "^1.0.0-next.2",
-        "axios": "^1.12.2",
-        "zod": "^4.1.9",
-      },
       "devDependencies": {
         "@biomejs/biome": "^2.2.4",
         "@commitlint/cli": "^19.8.1",
@@ -25,6 +20,11 @@
         "semantic-release": "^24.2.8",
         "tsup": "^8.0.0",
         "typescript": "^5.0.0",
+      },
+      "peerDependencies": {
+        "@devp0nt/meta0": "^1.0.0-next.2",
+        "axios": "^1.12.2",
+        "zod": "^4.1.9",
       },
     },
   },
