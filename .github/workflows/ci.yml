@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  push:
+    branches: [main, next]
+
+permissions:
+  contents: write # <-- allows pushing tags/commits
+  issues: write # <-- needed for GitHub release notes
+  pull-requests: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: >
+      !contains(github.event.head_commit.message, '--skip-ci')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+
+      - name: Setup Bun latest
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        run: bun run types
+
+      - name: Build
+        run: bun run build:all
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-files
+          path: |
+            dist/
+            dist-test/
+            package.json
+          retention-days: 1
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node:
+          - 18
+          - 20
+          - 22
+          - 24
+        bun:
+          - latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Setup Bun ${{ matrix.bun }}
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ matrix.bun }}
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v5
+        with:
+          name: build-files
+          path: .
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run tests
+        run: bun test:all
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    if: >
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/next') &&
+      !contains(github.event.head_commit.message, '--skip-ci')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # semantic-release requires full history
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v5
+        with:
+          name: build-files
+          path: .
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npx semantic-release

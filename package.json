@@ -1,0 +1,96 @@
+{
+  "name": "@devp0nt/error0",
+  "license": "MIT",
+  "author": {
+    "name": "Sergei Dmitriev",
+    "url": "https://p0nt.dev"
+  },
+  "homepage": "https://github.com/devp0nt/error0#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devp0nt/error0.git"
+  },
+  "bugs": {
+    "url": "https://github.com/devp0nt/error0/issues"
+  },
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/esm/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "src/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "tsc --watch --preserveWatchOutput --project tsconfig.build.json",
+    "build": "tsup",
+    "build:test:esm": "tsup --outDir dist-test/esm --tsconfig tsconfig.build.test.json --format esm src",
+    "build:test:esm:watch": "bun run build:test:esm --watch",
+    "build:test:cjs": "tsup --outDir dist-test/cjs --tsconfig tsconfig.build.test.json --format cjs src",
+    "build:test:cjs:watch": "bun run build:test:cjs --watch",
+    "build:test": "bun run build:test:esm && bun run build:test:cjs",
+    "build:test:watch": "bun run build:test:esm:watch & bun run build:test:cjs:watch",
+    "build:all": "bun run build && bun run build:test",
+    "test": "bun test src",
+    "test:watch": "bun test --watch",
+    "test:coverage": "bun test --coverage",
+    "test:dist:esm": "bun test dist-test/esm",
+    "test:dist:esm:watch": "bun run test:dist:esm --watch",
+    "test:dist:esm:build:watch": "bun build:test:esm:watch --no-clean & bun test:dist:esm:watch",
+    "test:dist:cjs": "bun test dist-test/cjs",
+    "test:dist:cjs:watch": "bun run test:dist:cjs --watch",
+    "test:dist:cjs:build:watch": "bun build:test:cjs:watch --no-clean & bun test:dist:cjs:watch",
+    "test:dist": "bun run test:dist:esm && bun run test:dist:cjs",
+    "test:dist:watch": "bun run test:dist:esm:watch & bun run test:dist:cjs:watch",
+    "test:dist:build:watch": "bun build:test:watch & bun test:dist:watch",
+    "test:all": "bun run test && bun run test:dist",
+    "test:all:watch": "bun run test:watch & bun run test:dist:watch",
+    "test:all:build": "bun run build:all && bun run test:all",
+    "test:all:build:watch": "bun run build:all:watch & bun run test:all:watch",
+    "lint": "biome check --write",
+    "types:build": "tsc --noEmit --project tsconfig.build.json",
+    "types:dev": "tsc --noEmit",
+    "types": "bun run types:dev",
+    "pack:dry": "npm pack --dry-run",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "@devp0nt/meta0": "^1.0.0-next.2",
+    "axios": "^1.12.2",
+    "zod": "^4.1.9"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.2.4",
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^11.0.6",
+    "@semantic-release/npm": "^12.0.2",
+    "@types/bun": "^1.2.22",
+    "@types/lodash": "^4.17.20",
+    "@types/node": "^20.0.0",
+    "cross-env": "^10.0.0",
+    "husky": "^9.1.7",
+    "lodash": "^4.17.21",
+    "semantic-release": "^24.2.8",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "bun": ">=1.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

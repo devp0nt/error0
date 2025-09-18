@@ -1,0 +1,72 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.2.4/schema.json",
+  "vcs": {
+    "enabled": false,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    // TODO: try use .gitignore as source of ignores
+    "includes": ["**", "!**/dist", "!**/dist-test", "!**/node_modules"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "lineWidth": 120,
+    "indentWidth": 2,
+    "formatWithErrors": true
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "nursery": {
+        "noFloatingPromises": "error",
+        "noMisusedPromises": "error",
+        "noUnnecessaryConditions": "error"
+      },
+      "recommended": true,
+      "style": {
+        "useTemplate": "off",
+        "noProcessEnv": "off"
+      },
+      "correctness": {
+        "noEmptyPattern": "off",
+        "noUnusedFunctionParameters": "off",
+        "noConstructorReturn": "off"
+      },
+      "complexity": {
+        "noUselessThisAlias": "off",
+        "noBannedTypes": "off",
+        "noThisInStatic": "off",
+        "noStaticOnlyClass": "off",
+        "useOptionalChain": "off"
+      },
+      "suspicious": {
+        "noConsole": {
+          "level": "error",
+          "options": {
+            "allow": []
+          }
+        },
+        // "useAwait": "error",
+        "noFocusedTests": "error",
+        "noExplicitAny": "off"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "asNeeded"
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  }
+}
