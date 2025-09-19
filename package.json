@@ -41,6 +41,7 @@
     "build:test:watch": "bun run build:test:esm:watch & bun run build:test:cjs:watch",
     "build:all": "bun run build && bun run build:test",
     "test": "bun test src",
+    "test:us": "bun test src --update-snapshots",
     "test:watch": "bun test --watch",
     "test:coverage": "bun test --coverage",
     "test:dist:esm": "bun test dist-test/esm",
