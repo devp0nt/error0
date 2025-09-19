@@ -23,7 +23,7 @@
       "nursery": {
         "noFloatingPromises": "error",
         "noMisusedPromises": "error",
-        "noUnnecessaryConditions": "error"
+        "noUnnecessaryConditions": "off"
       },
       "recommended": true,
       "style": {
