@@ -1,8 +1,9 @@
-import { Meta0 } from '@devp0nt/meta0'
+import { Meta0, meta0PluginTag } from '@devp0nt/meta0'
 import { type AxiosError, HttpStatusCode, isAxiosError } from 'axios'
 import get from 'lodash/get.js'
 import { ZodError } from 'zod'
 
+// TODO: Зод, аксиос, это всё плагины
 // TODO: В эррор0 добавить ориджинал
 // TODO: store tags as array from all causes
 // TODO: not use self stack if toError0
@@ -44,6 +45,25 @@ type Error0Cause = Error | Error0 | unknown
 type ExpectedFn = (error: Error0GeneralProps) => boolean | undefined
 
 const isFilled = <T>(value: T): value is NonNullable<T> => value !== null && value !== undefined && value !== ''
+const toStringOrUndefined = (value: unknown): string | undefined => {
+  return typeof value === 'string' ? value : undefined
+}
+const toNumberOrUndefined = (value: unknown): number | undefined => {
+  if (typeof value === 'number') {
+    return value
+  }
+  const number = Number(value)
+  if (typeof value === 'string' && !Number.isNaN(number)) {
+    return number
+  }
+  return undefined
+}
+const toBooleanOrUndefined = (value: unknown): boolean | undefined => {
+  if (typeof value === 'boolean') {
+    return value
+  }
+  return undefined
+}
 
 export class Error0 extends Error {
   public readonly __I_AM_ERROR_0: true = true
@@ -165,14 +185,22 @@ export class Error0 extends Error {
     stack: Error0GeneralProps['stack']
   }): Error0GeneralProps {
     // const meta = Meta0.merge(error0Input.meta0, error0Input.meta).value
-    const meta0 = Meta0.extend(error0Input.meta, this.defaultMeta)
+
+    // const meta0 = Meta0.extend(error0Input.meta, this.defaultMeta)
+    // const defaultMetaValue =
+    //   this.defaultMeta && typeof this.defaultMeta === 'object' && 'getValue' in this.defaultMeta
+    //     ? (this.defaultMeta as any).getValue()
+    //     : this.defaultMeta
+
+    const meta0 = Meta0.extend(this.defaultMeta, error0Input.meta)
     const meta = meta0.getValue()
-    const finalTag = meta0.getFinalTag(error0Input.tag)
+    const finalTag = meta0PluginTag.public.getFullTag(meta0, error0Input.tag)
+    delete meta.tagPrefix
     const clientMessage = error0Input.clientMessage || this.defaultClientMessage
     const result: Error0GeneralProps = {
       message: error0Input.message || this.defaultMessage,
       tag: finalTag,
-      code: error0Input.code || meta.code || this.defaultCode,
+      code: error0Input.code || toStringOrUndefined(meta.code) || this.defaultCode,
       httpStatus:
         typeof error0Input.httpStatus === 'number'
           ? error0Input.httpStatus
@@ -180,7 +208,7 @@ export class Error0 extends Error {
               typeof error0Input.httpStatus === 'string' &&
               error0Input.httpStatus in HttpStatusCode
             ? HttpStatusCode[error0Input.httpStatus]
-            : meta.httpStatus || this.defaultHttpStatus,
+            : toNumberOrUndefined(meta.httpStatus) || this.defaultHttpStatus,
       expected: undefined,
       clientMessage,
       anyMessage: clientMessage || message,
@@ -194,7 +222,7 @@ export class Error0 extends Error {
       result,
       typeof error0Input.expected === 'boolean' || typeof error0Input.expected === 'function'
         ? error0Input.expected
-        : meta.expected || this.defaultExpected,
+        : toBooleanOrUndefined(meta.expected) || this.defaultExpected,
     )
     result.stack = this._removeConstructorStackPart(stack)
     return result
@@ -205,7 +233,7 @@ export class Error0 extends Error {
     const stack = this._mergeStack(causesProps[1]?.stack, causesProps[0]?.stack)
     const closestTag = this._getClosestPropValue(causesProps, 'tag')
     const meta = this._getMergedMetaValue(causesProps)
-    const tag = Meta0.getFinalTag(meta, closestTag)
+    const tag = meta0PluginTag.public.getFullTag(meta, closestTag)
     const propsFloated: Error0GeneralProps = {
       message: this._getClosestPropValue(causesProps, 'message'),
       tag,
@@ -520,7 +548,7 @@ export class Error0 extends Error {
       static override defaultHttpStatus = props.defaultHttpStatus ?? parent.defaultHttpStatus
       static override defaultExpected = props.defaultExpected ?? parent.defaultExpected
       static override defaultClientMessage = props.defaultClientMessage ?? parent.defaultClientMessage
-      static override defaultMeta = Meta0.extend(props.defaultMeta, parent.defaultMeta)
+      static override defaultMeta = Meta0.extend(parent.defaultMeta, props.defaultMeta)
     }
   }
 
@@ -576,10 +604,3 @@ export namespace Error0 {
   export type JSON = ReturnType<Error0['toJSON']>
   export type Collection = Record<string, typeof Error0>
 }
-
-export const e0s = {
-  Default: Error0,
-  Expected: Error0.extend({
-    defaultExpected: true,
-  }) as typeof Error0,
-} satisfies Error0.Collection

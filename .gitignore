@@ -58,3 +58,6 @@ secrets/
 *.pem
 *.key
 *.crt
+
+# Force ignored files
+*.ignore*

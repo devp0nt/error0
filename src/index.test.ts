@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'bun:test'
 import { type AxiosError, isAxiosError } from 'axios'
 import z, { ZodError } from 'zod'
-import { Error0, e0s } from './index.js'
+import { Error0 } from './index.js'
+
+const e0s = {
+  Default: Error0,
+  Expected: Error0.extend({
+    defaultExpected: true,
+  }) as typeof Error0,
+} satisfies Error0.Collection
 
 // TODO: test expected
 
@@ -418,9 +425,10 @@ describe('error0', () => {
       defaultMessage: 'nested error',
       defaultMeta: {
         tagPrefix: 'nested',
+        x: 1,
       },
     })
-    const error0 = new e0s1.Default('nested error')
+    const error0 = new e0s1.Default('nested error', { tag: 'x' })
     expect(error0).toBeInstanceOf(e0s1.Default)
     expect(error0).toBeInstanceOf(e0s.Default)
     expect(error0).toBeInstanceOf(Error0)
@@ -435,13 +443,13 @@ describe('error0', () => {
         "httpStatus": undefined,
         "message": "nested error",
         "meta": {
-          "tagPrefix": "nested",
+          "x": 1,
         },
         "stack": 
       "Error0: nested error
           at <anonymous> (...)"
       ,
-        "tag": "nested:nested",
+        "tag": "nested:x",
       }
     `)
 
@@ -461,13 +469,13 @@ describe('error0', () => {
         "httpStatus": undefined,
         "message": "nested error 1",
         "meta": {
-          "tagPrefix": "nested",
+          "x": 1,
         },
         "stack": 
       "Error0: nested error 1
           at <anonymous> (...)"
       ,
-        "tag": "nested:nested",
+        "tag": "nested",
       }
     `)
   })
