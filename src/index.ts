@@ -42,7 +42,7 @@ export class Error0 extends Error {
   public readonly clientMessage?: Error0.GeneralProps['clientMessage']
   public readonly anyMessage?: Error0.GeneralProps['anyMessage']
   public override readonly cause?: Error0.GeneralProps['cause']
-  public readonly meta?: Meta0.Meta0OrValueTypeNullish
+  public readonly meta?: Meta0.ValueTypeNullish
   public readonly zodError?: Error0.GeneralProps['zodError']
   public readonly axiosError?: Error0.GeneralProps['axiosError']
 
