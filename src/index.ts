@@ -1,4 +1,5 @@
-import { Meta0, meta0PluginTag } from '@devp0nt/meta0'
+import { Meta0 } from '@devp0nt/meta0'
+import { meta0PluginTag } from '@devp0nt/meta0/plugins/meta0-plugin-tag'
 import { type AxiosError, HttpStatusCode, isAxiosError } from 'axios'
 import get from 'lodash/get.js'
 import { ZodError } from 'zod'
