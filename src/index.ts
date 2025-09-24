@@ -4,6 +4,7 @@ import { type AxiosError, HttpStatusCode, isAxiosError } from 'axios'
 import get from 'lodash/get.js'
 import { ZodError } from 'zod'
 
+// TODO: Эррор 0 можно передать и вторым аргументом в логгер, тогда её месадж попадёт в мету, а первый месадж в сам месадж логера
 // TODO: Зод, аксиос, это всё плагины
 // TODO: В эррор0 добавить ориджинал
 // TODO: store tags as array from all causes
