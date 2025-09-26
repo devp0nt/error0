@@ -532,9 +532,6 @@ describe('error0', () => {
       } as AxiosError
     }
     const axiosError = makeFakeAxiosError()
-    if (!axiosError) {
-      throw new Error('axiosError is undefined')
-    }
     expect(isAxiosError(axiosError)).toBe(true)
     const error0 = Error0.from(axiosError)
     expect(error0.axiosError).toBe(axiosError)

@@ -35,7 +35,7 @@ const toBooleanOrUndefined = (value: unknown): boolean | undefined => {
 }
 
 export class Error0 extends Error {
-  public readonly __I_AM_ERROR_0: true = true
+  public readonly __I_AM_ERROR_0 = true as const
 
   public readonly tag?: Error0.GeneralProps['tag']
   public readonly code?: Error0.GeneralProps['code']
@@ -313,7 +313,8 @@ export class Error0 extends Error {
       meta:
         'meta' in error && typeof error.meta === 'object' && error.meta !== null
           ? Meta0.getValue(error.meta as Meta0.ValueType)
-          : Meta0.getValue(defaults?.meta) || {},
+          : // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            Meta0.getValue(defaults?.meta) || {},
       httpStatus:
         'httpStatus' in error && typeof error.httpStatus === 'number' && error.httpStatus in HttpStatusCode
           ? error.httpStatus
@@ -377,7 +378,7 @@ export class Error0 extends Error {
     for (const causeProps of causesProps) {
       const propValue = causeProps[propKey]
       if (isFilled(propValue)) {
-        return propValue as NonNullable<Error0.GeneralProps[TPropKey]>
+        return propValue
       }
     }
     return undefined
@@ -399,12 +400,12 @@ export class Error0 extends Error {
   public static _getFilledPropValues<TPropKey extends keyof Error0.Input>(
     causesProps: Error0.GeneralProps[],
     propKey: TPropKey,
-  ): NonNullable<Error0.GeneralProps[TPropKey]>[] {
-    const values: NonNullable<Error0.GeneralProps[TPropKey]>[] = []
+  ): Array<NonNullable<Error0.GeneralProps[TPropKey]>> {
+    const values: Array<NonNullable<Error0.GeneralProps[TPropKey]>> = []
     for (const causeProps of causesProps) {
       const propValue = causeProps[propKey]
       if (isFilled(propValue)) {
-        values.push(propValue as NonNullable<Error0.GeneralProps[TPropKey]>)
+        values.push(propValue)
       }
     }
     return values
@@ -481,14 +482,18 @@ export class Error0 extends Error {
       })
     }
 
-    const inputFromData = get(error, 'data')
+    // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
+    const inputFromData = get(error, 'data', undefined)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (inputFromData) {
       if (Error0.isLikelyError0(inputFromData)) {
         return this._toError0(inputFromData, inputOverride)
       }
     }
 
-    const inputFromDataError0 = get(error, 'data.error0')
+    // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
+    const inputFromDataError0 = get(error, 'data.error0', undefined)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (inputFromDataError0) {
       if (Error0.isLikelyError0(inputFromDataError0)) {
         return this._toError0(inputFromDataError0, inputOverride)
@@ -510,6 +515,7 @@ export class Error0 extends Error {
     defaultClientMessage?: Error0.GeneralProps['clientMessage']
     defaultMeta?: Meta0.Meta0OrValueTypeNullish
   }) {
+    // eslint-disable-next-line consistent-this, @typescript-eslint/no-this-alias
     const parent = this
     return class Error0 extends parent {
       static override defaultMessage = props.defaultMessage ?? parent.defaultMessage
@@ -575,7 +581,7 @@ export namespace Error0 {
     tag?: string
     code?: string
     httpStatus?: HttpStatusCode | HttpStatusCodeString
-    expected?: boolean | Error0.ExpectedFn
+    expected?: boolean | ExpectedFn
     clientMessage?: string
     cause?: Error0Cause
     stack?: string
@@ -600,7 +606,7 @@ export namespace Error0 {
   }
 
   export type HttpStatusCodeString = keyof typeof HttpStatusCode
-  export type Error0Cause = Error | Error0 | unknown
+  export type Error0Cause = unknown
   export type ExpectedFn = (error: GeneralProps) => boolean | undefined
   export type JSON = ReturnType<Error0['toJSON']>
   export type Collection = Record<string, typeof Error0>

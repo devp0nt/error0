@@ -57,12 +57,18 @@
     "test:all:watch": "bun run test:watch & bun run test:dist:watch",
     "test:all:build": "bun run build:all && bun run test:all",
     "test:all:build:watch": "bun run build:all:watch & bun run test:all:watch",
-    "lint": "biome check --write",
+    "lint": "bun run lint:base .",
+    "lint:base": "eslint --cache --cache-location node_modules/.cache/eslint/.eslintcache",
+    "lint:fix": "bun run lint --fix",
+    "format": "bun run format:base .",
+    "format:base": "prettier --cache --cache-location node_modules/.cache/prettier/.prettiercache --ignore-path .gitignore",
+    "format:fix": "bun run format:base --write",
     "types:build": "tsc --noEmit --project tsconfig.build.json",
     "types:dev": "tsc --noEmit",
     "types": "bun run types:dev",
     "pack:dry": "npm pack --dry-run",
-    "prepare": "husky"
+    "prepare": "husky",
+    "clean": "rimraf dist && rimraf dist-test && rimraf node_modules/.cache"
   },
   "dependencies": {},
   "peerDependencies": {
@@ -71,7 +77,6 @@
     "zod": "^4.1.9"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.2.4",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@semantic-release/changelog": "^6.0.3",
@@ -82,8 +87,14 @@
     "@types/lodash": "^4.17.20",
     "@types/node": "^20.0.0",
     "cross-env": "^10.0.0",
+    "eslint": "^9.36.0",
+    "eslint-config-love": "^130.0.0",
+    "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
+    "lint-staged": "^16.2.1",
     "lodash": "^4.17.21",
+    "prettier": "^3.6.2",
+    "rimraf": "^6.0.1",
     "semantic-release": "^24.2.8",
     "tsup": "^8.0.0",
     "typescript": "^5.0.0"
