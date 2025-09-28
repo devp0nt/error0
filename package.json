@@ -32,7 +32,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "dev": "tsc-watch --preserveWatchOutput --project tsconfig.build.json --onSuccess 'bun run pack:dist'",
+    "dev": "tsc-watch --preserveWatchOutput --project tsconfig.build.json",
+    "dev:npm": "tsc-watch --preserveWatchOutput --project tsconfig.build.json --onSuccess 'bun run pack:dist'",
     "build": "tsup",
     "build:test:esm": "tsup --outDir dist-test/esm --tsconfig tsconfig.build.test.json --format esm src",
     "build:test:esm:watch": "bun run build:test:esm --watch",
@@ -68,9 +69,10 @@
     "types:dev": "tsc --noEmit",
     "types": "bun run types:dev",
     "pack:dry": "npm pack --dry-run",
-    "pack:dist": "rimraf dist-npm && mkdir -p dist-npm && npm pack --pack-destination dist-npm --silent && cd dist-npm && tar -xzf *.tgz && mv package/* . && rmdir package && rm *.tgz",
+    "pack:dist": "mkdir -p dist-npm && npm pack --pack-destination dist-npm --silent && cd dist-npm && tar -xzf *.tgz && cp -r package/* . && rm -rf package && rm *.tgz",
+    "pack:dist:hard": "rimraf dist-npm && bun run pack:dist",
     "prepare": "husky",
-    "clean": "rimraf dist && rimraf dist-test && rimraf node_modules/.cache"
+    "clean": "rimraf dist && rimraf dist-test && rimraf dist-npm && rimraf node_modules/.cache"
   },
   "dependencies": {},
   "peerDependencies": {
