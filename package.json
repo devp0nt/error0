@@ -76,7 +76,7 @@
   },
   "dependencies": {},
   "peerDependencies": {
-    "@devp0nt/meta0": "^1.0.0-next.21",
+    "@devp0nt/meta0": "^1.0.0-next.23",
     "axios": "^1.12.2",
     "zod": "^4.1.9"
   },
@@ -94,6 +94,7 @@
     "eslint": "^9.36.0",
     "eslint-config-love": "^130.0.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-no-only-tests": "^3.3.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.1",
     "lodash": "^4.17.21",

@@ -2,6 +2,7 @@
 import love from 'eslint-config-love'
 import prettier from 'eslint-config-prettier'
 import { defineConfig } from 'eslint/config'
+import noOnlyTests from 'eslint-plugin-no-only-tests'
 
 export default defineConfig([
   // Global ignores to keep linting fast and avoid vendor/build dirs
@@ -68,6 +69,15 @@ export default defineConfig([
       'eslint-comments/require-description': 'off',
       '@typescript-eslint/no-unsafe-type-assertion': 'off',
       '@typescript-eslint/no-unsafe-argument': 'off',
+    },
+  },
+  {
+    files: ['**/*.test.{js,jsx,ts,tsx}'],
+    plugins: {
+      'no-only-tests': noOnlyTests,
+    },
+    rules: {
+      'no-only-tests/no-only-tests': 'error',
     },
   },
   prettier,
