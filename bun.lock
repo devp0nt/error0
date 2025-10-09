@@ -29,7 +29,7 @@
         "typescript": "^5.0.0",
       },
       "peerDependencies": {
-        "@devp0nt/meta0": "^1.0.0-next.26",
+        "@devp0nt/meta0": "^1.0.0-next.27",
         "axios": "^1.12.2",
         "zod": "^4.1.9",
       },
@@ -76,9 +76,9 @@
 
     "@commitlint/types": ["@commitlint/types@19.8.1", "", { "dependencies": { "@types/conventional-commits-parser": "^5.0.0", "chalk": "^5.3.0" } }, "sha512-/yCrWGCoA1SVKOks25EGadP9Pnj0oAIHGpl2wH2M2Y46dPM2ueb8wyCVOD7O3WCTkaJ0IkKvzhl1JY7+uCT2Dw=="],
 
-    "@devp0nt/deepmap0": ["@devp0nt/deepmap0@1.0.0-next.17", "", {}, "sha512-XMNSoJZ/0VbKK4Cz34qbAJNJwoPWfFEXs7UnjXdd7XhV7jgXOTJXrcdaGtAeqdQrmzRtKqmSiC4Gep4nNZMdng=="],
+    "@devp0nt/deepmap0": ["@devp0nt/deepmap0@1.0.0-next.18", "", {}, "sha512-lU2NzrjoutGfKfzJ0MjfFWh4IokutfUsTz9UHt1Li/LyWRVhkCLCxOFV/30TU1FuoE6saA8j36LRiZaPNzhKzQ=="],
 
-    "@devp0nt/meta0": ["@devp0nt/meta0@1.0.0-next.26", "", { "dependencies": { "@devp0nt/deepmap0": "^1.0.0-next.17" } }, "sha512-/62rV30pzYn67pXxwaVplaZ8WMEWikF1iJoA9jdbA9x0EpNDIoodsxqM/lmIENmdl2A6eQpykhDJde7IkHXAaA=="],
+    "@devp0nt/meta0": ["@devp0nt/meta0@1.0.0-next.27", "", { "dependencies": { "@devp0nt/deepmap0": "^1.0.0-next.18" } }, "sha512-ArVMGDao3odpIiav0L2HkKhIsawKn44Ta/Dl56wTKJMSpp2dsPpq6UVmS/1429owE0IfAC77VXCZLk9TeMTedw=="],
 
     "@epic-web/invariant": ["@epic-web/invariant@1.0.0", "", {}, "sha512-lrTPqgvfFQtR/eY/qkIzp98OGdNJu0m5ji3q/nJI8v3SXkRKEnWiOxMmbvcSoAIzv/cGiuvRy57k4suKQSAdwA=="],
 
