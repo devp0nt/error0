@@ -10,6 +10,8 @@ export default defineConfig([
     ignores: [
       '**/node_modules/**',
       '**/dist/**',
+      '**/dist-test/**',
+      '**/dist-npm/**',
       '**/.cache/**',
       '**/.husky/**',
       '**/.git/**',

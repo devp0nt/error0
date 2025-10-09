@@ -4,5 +4,13 @@
   "semi": false,
   "printWidth": 120,
   "trailingComma": "all",
-  "arrowParens": "always"
+  "arrowParens": "always",
+  "overrides": [
+    {
+      "files": ["*.jsonc", "*.json"],
+      "options": {
+        "trailingComma": "none"
+      }
+    }
+  ]
 }
