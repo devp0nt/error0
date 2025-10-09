@@ -76,7 +76,7 @@
   },
   "dependencies": {},
   "peerDependencies": {
-    "@devp0nt/meta0": "^1.0.0-next.28",
+    "@devp0nt/meta0": "^1.0.0-next.29",
     "axios": "^1.12.2",
     "zod": "^4.1.9"
   },
