@@ -29,7 +29,7 @@
         "typescript": "^5.0.0",
       },
       "peerDependencies": {
-        "@devp0nt/meta0": "^1.0.0-next.27",
+        "@devp0nt/meta0": "^1.0.0-next.28",
         "axios": "^1.12.2",
         "zod": "^4.1.9",
       },
@@ -78,7 +78,7 @@
 
     "@devp0nt/deepmap0": ["@devp0nt/deepmap0@1.0.0-next.18", "", {}, "sha512-lU2NzrjoutGfKfzJ0MjfFWh4IokutfUsTz9UHt1Li/LyWRVhkCLCxOFV/30TU1FuoE6saA8j36LRiZaPNzhKzQ=="],
 
-    "@devp0nt/meta0": ["@devp0nt/meta0@1.0.0-next.27", "", { "dependencies": { "@devp0nt/deepmap0": "^1.0.0-next.18" } }, "sha512-ArVMGDao3odpIiav0L2HkKhIsawKn44Ta/Dl56wTKJMSpp2dsPpq6UVmS/1429owE0IfAC77VXCZLk9TeMTedw=="],
+    "@devp0nt/meta0": ["@devp0nt/meta0@1.0.0-next.28", "", { "dependencies": { "@devp0nt/deepmap0": "^1.0.0-next.18" } }, "sha512-e/t24n9lR19/NIE5gDQDAhOZgeF1M7KTqZSnc/OKen4m3WfgN8Epx5OB9Xp4U9MN0c57fe0WdMORrpfHFGQS2Q=="],
 
     "@epic-web/invariant": ["@epic-web/invariant@1.0.0", "", {}, "sha512-lrTPqgvfFQtR/eY/qkIzp98OGdNJu0m5ji3q/nJI8v3SXkRKEnWiOxMmbvcSoAIzv/cGiuvRy57k4suKQSAdwA=="],
 
