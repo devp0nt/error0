@@ -29,7 +29,7 @@
         "typescript": "^5.0.0",
       },
       "peerDependencies": {
-        "@devp0nt/meta0": "^1.0.0-next.25",
+        "@devp0nt/meta0": "^1.0.0-next.26",
         "axios": "^1.12.2",
         "zod": "^4.1.9",
       },
@@ -78,7 +78,7 @@
 
     "@devp0nt/deepmap0": ["@devp0nt/deepmap0@1.0.0-next.17", "", {}, "sha512-XMNSoJZ/0VbKK4Cz34qbAJNJwoPWfFEXs7UnjXdd7XhV7jgXOTJXrcdaGtAeqdQrmzRtKqmSiC4Gep4nNZMdng=="],
 
-    "@devp0nt/meta0": ["@devp0nt/meta0@1.0.0-next.25", "", { "dependencies": { "@devp0nt/deepmap0": "^1.0.0-next.17" } }, "sha512-I0utoA8Op9QGGrB9+RIY7tJsPndqmhxARerqWBq10j3Y4GppAck/AHOQ7SyQSVsyaxDq/UqLFhzCO7pLhwqJBA=="],
+    "@devp0nt/meta0": ["@devp0nt/meta0@1.0.0-next.26", "", { "dependencies": { "@devp0nt/deepmap0": "^1.0.0-next.17" } }, "sha512-/62rV30pzYn67pXxwaVplaZ8WMEWikF1iJoA9jdbA9x0EpNDIoodsxqM/lmIENmdl2A6eQpykhDJde7IkHXAaA=="],
 
     "@epic-web/invariant": ["@epic-web/invariant@1.0.0", "", {}, "sha512-lrTPqgvfFQtR/eY/qkIzp98OGdNJu0m5ji3q/nJI8v3SXkRKEnWiOxMmbvcSoAIzv/cGiuvRy57k4suKQSAdwA=="],
 
