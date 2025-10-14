@@ -15,14 +15,21 @@
     "url": "https://github.com/devp0nt/error0/issues"
   },
   "type": "module",
-  "main": "./dist/cjs/index.js",
-  "module": "./dist/esm/index.js",
   "types": "./dist/esm/index.d.ts",
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.js",
   "exports": {
     ".": {
       "types": "./dist/esm/index.d.ts",
-      "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js"
+      "require": "./dist/cjs/index.cjs",
+      "import": "./dist/esm/index.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "": [
+        "./dist/esm/index.d.ts"
+      ]
     }
   },
   "files": [
@@ -91,6 +98,7 @@
     "@types/lodash": "^4.17.20",
     "@types/node": "^20.0.0",
     "cross-env": "^10.0.0",
+    "esbuild-fix-imports-plugin": "^1.0.22",
     "eslint": "^9.36.0",
     "eslint-config-love": "^130.0.0",
     "eslint-config-prettier": "^10.1.8",
