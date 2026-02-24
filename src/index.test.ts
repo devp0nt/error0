@@ -32,15 +32,9 @@ describe('Error0', () => {
       },
       serialize: (value) => value,
     })
-    .method('isStatus', (error, status: number) => error.flow('status').some((value) => value === status))
+    .method('isStatus', (error, status: number) => error.status === status)
 
-  type IsAny<T> = 0 extends 1 & T ? true : false
-  type StatusSerializeValue = Parameters<
-    NonNullable<ReturnType<typeof statusExtension.toExtension>['props']>['status']['serialize']
-  >[0]
-  expectTypeOf<IsAny<StatusSerializeValue>>().toEqualTypeOf<false>()
-
-  const codeExtension = Error0.extension().extension('prop', 'code', {
+  const codeExtension = Error0.extension().extend('prop', 'code', {
     setter: (value: string) => value,
     getter: (error) => {
       for (const value of error.flow('code')) {

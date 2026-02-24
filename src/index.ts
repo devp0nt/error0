@@ -198,26 +198,43 @@ export class ExtensionError0<
     }
   }
 
-  extension<
-    TKey extends string,
-    TInputValue,
-    TOutputValue,
-  >(
+  prop<TKey extends string, TInputValue, TOutputValue>(
+    key: TKey,
+    value: ErrorExtensionPropOptions<TInputValue, TOutputValue>,
+  ): ExtensionError0<AddPropToExtensionProps<TProps, TKey, TInputValue, TOutputValue>, TComputed, TMethods> {
+    return this.extend('prop', key, value)
+  }
+
+  computed<TKey extends string, TOutputValue>(
+    key: TKey,
+    value: ErrorExtensionCopmputedFn<TOutputValue>,
+  ): ExtensionError0<TProps, AddComputedToExtensionComputed<TComputed, TKey, TOutputValue>, TMethods> {
+    return this.extend('computed', key, value)
+  }
+
+  method<TKey extends string, TArgs extends unknown[], TOutputValue>(
+    key: TKey,
+    value: ErrorExtensionMethodFn<TOutputValue, TArgs>,
+  ): ExtensionError0<TProps, TComputed, AddMethodToExtensionMethods<TMethods, TKey, TArgs, TOutputValue>> {
+    return this.extend('method', key, value)
+  }
+
+  extend<TKey extends string, TInputValue, TOutputValue>(
     kind: 'prop',
     key: TKey,
     value: ErrorExtensionPropOptions<TInputValue, TOutputValue>,
   ): ExtensionError0<AddPropToExtensionProps<TProps, TKey, TInputValue, TOutputValue>, TComputed, TMethods>
-  extension<TKey extends string, TOutputValue>(
+  extend<TKey extends string, TOutputValue>(
     kind: 'computed',
     key: TKey,
     value: ErrorExtensionCopmputedFn<TOutputValue>,
   ): ExtensionError0<TProps, AddComputedToExtensionComputed<TComputed, TKey, TOutputValue>, TMethods>
-  extension<TKey extends string, TArgs extends unknown[], TOutputValue>(
+  extend<TKey extends string, TArgs extends unknown[], TOutputValue>(
     kind: 'method',
     key: TKey,
     value: ErrorExtensionMethodFn<TOutputValue, TArgs>,
   ): ExtensionError0<TProps, TComputed, AddMethodToExtensionMethods<TMethods, TKey, TArgs, TOutputValue>>
-  extension(
+  extend(
     kind: 'prop' | 'computed' | 'method',
     key: string,
     value:
@@ -240,14 +257,6 @@ export class ExtensionError0<
       computed: nextComputed,
       methods: nextMethods,
     })
-  }
-
-  toExtension(): ErrorExtension<TProps, TComputed, TMethods> {
-    return {
-      props: { ...(this._extension.props ?? {}) } as TProps,
-      computed: { ...(this._extension.computed ?? {}) } as TComputed,
-      methods: { ...(this._extension.methods ?? {}) } as TMethods,
-    }
   }
 }
 
@@ -531,6 +540,19 @@ export class Error0 extends Error {
     return Error0Extended as unknown as ClassError0
   }
 
+  private static _extensionFromBuilder(
+    extension: ExtensionError0,
+  ): ErrorExtension<ErrorExtensionProps, ErrorExtensionComputed, ErrorExtensionMethods> {
+    const extensionRecord = extension as unknown as {
+      _extension: ErrorExtension<ErrorExtensionProps, ErrorExtensionComputed, ErrorExtensionMethods>
+    }
+    return {
+      props: { ...(extensionRecord._extension.props ?? {}) },
+      computed: { ...(extensionRecord._extension.computed ?? {}) },
+      methods: { ...(extensionRecord._extension.methods ?? {}) },
+    }
+  }
+
   static extend<TThis extends typeof Error0, TBuilder extends ExtensionError0>(
     this: TThis,
     extension: TBuilder,
@@ -563,7 +585,7 @@ export class Error0 extends Error {
       | ErrorExtensionMethodFn<unknown>,
   ): ClassError0 {
     if (first instanceof ExtensionError0) {
-      return this._extendWithExtension(first.toExtension() as ErrorExtension<any, any, any>)
+      return this._extendWithExtension(this._extensionFromBuilder(first))
     }
     if (!key || value === undefined) {
       throw new Error('Error0.extend(kind, key, value) requires key and value')
