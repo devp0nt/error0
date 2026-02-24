@@ -126,10 +126,64 @@ export class Error0 extends Error {
     return causes
   }
 
-  static isLikeError0(error: unknown): error is Error0 {
+  static isError0(error: unknown): error is Error0 {
+    return error instanceof Error0
+  }
+
+  static isLikeError0(error: unknown): error is Error0 | object {
     return (
       error instanceof Error0 ||
       (typeof error === 'object' && error !== null && 'name' in error && error.name === 'Error0')
+    )
+  }
+
+  static from(error: unknown): Error0 {
+    if (this.isError0(error)) {
+      return error
+    }
+    if (this.isLikeError0(error)) {
+      return this._fromLikeError0(error)
+    }
+    return this._fromNonError0(error)
+  }
+
+  private static _fromLikeError0(error: unknown): Error0 {
+    const message = this._extractMessage(error)
+    if (typeof error !== 'object' || error === null) {
+      return new Error0(message, { cause: error })
+    }
+
+    const errorRecord = error as Record<string, unknown>
+    const recreated = new this(message)
+    for (const extension of this._extensions) {
+      const value = extension.getter({
+        self: recreated,
+        flow: (filter) => this.flow(recreated, extension.key, filter),
+        causes: (filter) => this.causes(recreated, filter),
+      })
+      if (value !== undefined) {
+        ;(recreated as unknown as Record<string, unknown>)[extension.key] = value
+      }
+    }
+    ;(recreated as unknown as { cause?: unknown }).cause = errorRecord.cause
+    if (typeof errorRecord.stack === 'string') {
+      recreated.stack = errorRecord.stack
+    }
+    return recreated
+  }
+
+  private static _fromNonError0(error: unknown): Error0 {
+    const message = this._extractMessage(error)
+    return new Error0(message, { cause: error })
+  }
+
+  private static _extractMessage(error: unknown): string {
+    return (
+      (typeof error === 'string'
+        ? error
+        : typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string'
+          ? error.message
+          : undefined) || 'Unknown error'
     )
   }
 
