@@ -245,7 +245,7 @@ describe('Error0', () => {
     expect(error.message).toBe(parsedError.message)
   })
 
-  it.only('error0 can normalize message and other props via extension and direct transformations', () => {
+  it('error0 can normalize message and other props via extension and direct transformations', () => {
     const schema = z.object({
       x: z.string(),
     })
@@ -255,19 +255,19 @@ describe('Error0', () => {
     const AppError = Error0.extend(statusExtension)
       .extend(codeExtension)
       .extend('normalize', (error) => {
-        if (error instanceof ZodError) {
+        if (error.cause instanceof ZodError) {
           error.status = 422
           error.code = 'VALIDATION_ERROR'
           error.message = `Validation Error: ${error.message}`
         }
       })
     const error = AppError.from(parsedError)
-    expect(error.message).toBe('Validation Error: Invalid value')
+    expect(error.message).toBe(`Validation Error: ${parsedError.message}`)
     expect(error.status).toBe(422)
     expect(error.code).toBe('VALIDATION_ERROR')
   })
 
-  it.only('error0 can normalize message and other props via extension and return output values from extension', () => {
+  it('error0 can normalize message and other props via extension and return output values from extension', () => {
     const schema = z.object({
       x: z.string(),
     })
@@ -277,16 +277,17 @@ describe('Error0', () => {
     const AppError = Error0.extend(statusExtension)
       .extend(codeExtension)
       .extend('normalize', (error) => {
-        if (error instanceof ZodError) {
+        if (error.cause instanceof ZodError) {
+          error.message = `Validation Error: ${error.message}`
           return {
             status: 422,
             code: 'VALIDATION_ERROR',
-            message: `Validation Error: ${error.message}`,
           }
         }
+        return undefined
       })
     const error = AppError.from(parsedError)
-    expect(error.message).toBe('Validation Error: Invalid value')
+    expect(error.message).toBe(`Validation Error: ${parsedError.message}`)
     expect(error.status).toBe(422)
     expect(error.code).toBe('VALIDATION_ERROR')
   })

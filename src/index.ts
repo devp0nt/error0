@@ -9,6 +9,13 @@ export type ErrorExtensionMethodFn<
   TArgs extends unknown[] = unknown[],
   TError extends Error0 = Error0,
 > = (error: TError, ...args: TArgs) => TOutputValue
+export type ErrorExtensionNormalizeResult<TOutputProps extends Record<string, unknown>> =
+  | Partial<TOutputProps>
+  | undefined
+export type ErrorExtensionNormalizeFn<
+  TError extends Error0 = Error0,
+  TOutputProps extends Record<string, unknown> = Record<never, never>,
+> = ((error: TError) => void) | ((error: TError) => ErrorExtensionNormalizeResult<TOutputProps>)
 type ErrorMethodRecord = {
   args: unknown[]
   output: unknown
@@ -26,6 +33,7 @@ export type ErrorExtension<
   props?: TProps
   computed?: TComputed
   methods?: TMethods
+  normalize?: Array<ErrorExtensionNormalizeFn<Error0, ExtensionOutputProps<TProps>>>
 }
 type AddPropToExtensionProps<
   TProps extends ErrorExtensionProps,
@@ -44,6 +52,9 @@ type AddMethodToExtensionMethods<
   TArgs extends unknown[],
   TOutputValue,
 > = TMethods & Record<TKey, ErrorExtensionMethodFn<TOutputValue, TArgs>>
+type ExtensionOutputProps<TProps extends ErrorExtensionProps> = {
+  [TKey in keyof TProps]: TProps[TKey] extends ErrorExtensionPropOptions<any, infer TOutputValue> ? TOutputValue : never
+}
 export type ErrorExtensionsMap = {
   props: Record<string, { input: unknown; output: unknown }>
   computed: Record<string, unknown>
@@ -98,6 +109,7 @@ type ErrorExtensionResolved = {
   props: Record<string, ErrorExtensionPropOptions<unknown, unknown>>
   computed: Record<string, ErrorExtensionCopmputedFn<unknown>>
   methods: Record<string, ErrorExtensionMethodFn<unknown>>
+  normalize: Array<ErrorExtensionNormalizeFn<Error0, Record<string, unknown>>>
 }
 
 type ExtensionPropsMapOf<TExtension extends ErrorExtension> = {
@@ -191,6 +203,7 @@ export class ExtensionError0<
       props: { ...(extension?.props ?? {}) },
       computed: { ...(extension?.computed ?? {}) },
       methods: { ...(extension?.methods ?? {}) },
+      normalize: [...(extension?.normalize ?? [])],
     }
   }
 
@@ -215,6 +228,12 @@ export class ExtensionError0<
     return this.extend('method', key, value)
   }
 
+  normalize(
+    value: ErrorExtensionNormalizeFn<BuilderError0<TProps, TComputed, TMethods>, ExtensionOutputProps<TProps>>,
+  ): ExtensionError0<TProps, TComputed, TMethods> {
+    return this.extend('normalize', value)
+  }
+
   extend<TKey extends string, TInputValue, TOutputValue>(
     kind: 'prop',
     key: TKey,
@@ -231,9 +250,13 @@ export class ExtensionError0<
     value: ErrorExtensionMethodFn<TOutputValue, TArgs, BuilderError0<TProps, TComputed, TMethods>>,
   ): ExtensionError0<TProps, TComputed, AddMethodToExtensionMethods<TMethods, TKey, TArgs, TOutputValue>>
   extend(
-    kind: 'prop' | 'computed' | 'method',
-    key: string,
-    value:
+    kind: 'normalize',
+    value: ErrorExtensionNormalizeFn<BuilderError0<TProps, TComputed, TMethods>, ExtensionOutputProps<TProps>>,
+  ): ExtensionError0<TProps, TComputed, TMethods>
+  extend(
+    kind: 'prop' | 'computed' | 'method' | 'normalize',
+    keyOrValue: string | ErrorExtensionNormalizeFn<any, any>,
+    value?:
       | ErrorExtensionPropOptions<unknown, unknown, any>
       | ErrorExtensionCopmputedFn<unknown, any>
       | ErrorExtensionMethodFn<unknown, unknown[], any>,
@@ -241,17 +264,35 @@ export class ExtensionError0<
     const nextProps: ErrorExtensionProps = { ...(this._extension.props ?? {}) }
     const nextComputed: ErrorExtensionComputed = { ...(this._extension.computed ?? {}) }
     const nextMethods: ErrorExtensionMethods = { ...(this._extension.methods ?? {}) }
+    const nextNormalize: Array<ErrorExtensionNormalizeFn<Error0, Record<string, unknown>>> = [
+      ...(this._extension.normalize ?? []),
+    ]
     if (kind === 'prop') {
+      const key = keyOrValue as string
+      if (value === undefined) {
+        throw new Error('ExtensionError0.extend("prop", key, value) requires value')
+      }
       nextProps[key] = value as ErrorExtensionPropOptions<any, any>
     } else if (kind === 'computed') {
+      const key = keyOrValue as string
+      if (value === undefined) {
+        throw new Error('ExtensionError0.extend("computed", key, value) requires value')
+      }
       nextComputed[key] = value as ErrorExtensionCopmputedFn<any>
-    } else {
+    } else if (kind === 'method') {
+      const key = keyOrValue as string
+      if (value === undefined) {
+        throw new Error('ExtensionError0.extend("method", key, value) requires value')
+      }
       nextMethods[key] = value as ErrorExtensionMethodFn<any, any[]>
+    } else {
+      nextNormalize.push(keyOrValue as ErrorExtensionNormalizeFn<Error0, Record<string, unknown>>)
     }
     return new ExtensionError0({
       props: nextProps,
       computed: nextComputed,
       methods: nextMethods,
+      normalize: nextNormalize,
     })
   }
 }
@@ -281,6 +322,10 @@ export type ClassError0<TExtensionsMap extends ErrorExtensionsMap = EmptyExtensi
       key: TKey,
       value: ErrorExtensionMethodFn<TOutputValue, TArgs, ErrorInstanceOfMap<TExtensionsMap>>,
     ): ClassError0<ExtendErrorExtensionsMapWithMethod<TExtensionsMap, TKey, TArgs, TOutputValue>>
+    (
+      kind: 'normalize',
+      value: ErrorExtensionNormalizeFn<ErrorInstanceOfMap<TExtensionsMap>, ErrorOutputProps<TExtensionsMap>>,
+    ): ClassError0<TExtensionsMap>
   }
   extension: () => ExtensionError0
 } & ErrorStaticMethods<TExtensionsMap>
@@ -293,6 +338,7 @@ export class Error0 extends Error {
     props: {},
     computed: {},
     methods: {},
+    normalize: [],
   }
 
   private static _getResolvedExtension(this: typeof Error0): ErrorExtensionResolved {
@@ -300,11 +346,13 @@ export class Error0 extends Error {
       props: {},
       computed: {},
       methods: {},
+      normalize: [],
     }
     for (const extension of this._extensions) {
       Object.assign(resolved.props, extension.props ?? this._emptyExtension.props)
       Object.assign(resolved.computed, extension.computed ?? this._emptyExtension.computed)
       Object.assign(resolved.methods, extension.methods ?? this._emptyExtension.methods)
+      resolved.normalize.push(...(extension.normalize ?? this._emptyExtension.normalize))
     }
     return resolved
   }
@@ -461,6 +509,17 @@ export class Error0 extends Error {
     return this._fromNonError0(error)
   }
 
+  private static _applyNormalize(error: Error0): Error0 {
+    const extension = this._getResolvedExtension()
+    for (const normalize of extension.normalize) {
+      const normalized = normalize(error as any)
+      if (normalized && typeof normalized === 'object') {
+        Object.assign(error as unknown as Record<string, unknown>, normalized)
+      }
+    }
+    return error
+  }
+
   private static _fromLikeError0(error: unknown): Error0 {
     const message = this._extractMessage(error)
     if (typeof error !== 'object' || error === null) {
@@ -486,7 +545,7 @@ export class Error0 extends Error {
 
   private static _fromNonError0(error: unknown): Error0 {
     const message = this._extractMessage(error)
-    return new this(message, { cause: error })
+    return this._applyNormalize(new this(message, { cause: error }))
   }
 
   private static _extractMessage(error: unknown): string {
@@ -540,6 +599,7 @@ export class Error0 extends Error {
       props: { ...(extensionRecord._extension.props ?? {}) },
       computed: { ...(extensionRecord._extension.computed ?? {}) },
       methods: { ...(extensionRecord._extension.methods ?? {}) },
+      normalize: [...(extensionRecord._extension.normalize ?? [])],
     }
   }
 
@@ -565,10 +625,18 @@ export class Error0 extends Error {
     key: TKey,
     value: ErrorExtensionMethodFn<TOutputValue, TArgs, ErrorInstanceOfMap<ExtensionsMapOf<TThis>>>,
   ): ClassError0<ExtendErrorExtensionsMapWithMethod<ExtensionsMapOf<TThis>, TKey, TArgs, TOutputValue>>
+  static extend<TThis extends typeof Error0>(
+    this: TThis,
+    kind: 'normalize',
+    value: ErrorExtensionNormalizeFn<
+      ErrorInstanceOfMap<ExtensionsMapOf<TThis>>,
+      ErrorOutputProps<ExtensionsMapOf<TThis>>
+    >,
+  ): ClassError0<ExtensionsMapOf<TThis>>
   static extend(
     this: typeof Error0,
-    first: ExtensionError0 | 'prop' | 'computed' | 'method',
-    key?: string,
+    first: ExtensionError0 | 'prop' | 'computed' | 'method' | 'normalize',
+    key?: string | ErrorExtensionNormalizeFn<any, any>,
     value?:
       | ErrorExtensionPropOptions<unknown, unknown>
       | ErrorExtensionCopmputedFn<unknown>
@@ -577,7 +645,15 @@ export class Error0 extends Error {
     if (first instanceof ExtensionError0) {
       return this._extendWithExtension(this._extensionFromBuilder(first))
     }
-    if (!key || value === undefined) {
+    if (first === 'normalize') {
+      if (typeof key !== 'function') {
+        throw new Error('Error0.extend("normalize", value) requires normalize function')
+      }
+      return this._extendWithExtension({
+        normalize: [key],
+      })
+    }
+    if (typeof key !== 'string' || value === undefined) {
       throw new Error('Error0.extend(kind, key, value) requires key and value')
     }
 
