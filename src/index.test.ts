@@ -179,7 +179,7 @@ describe('Error0', () => {
     expect(json.stack).toBe(error.stack)
   })
 
-  it('stack extension can customize serialization', () => {
+  it('stack extension can customize serialization of stack prop', () => {
     const AppError = Error0.extend('prop', 'stack', {
       setter: (value: string) => value,
       getter: (error: Error0) => error.own('stack'),
@@ -204,13 +204,10 @@ describe('Error0', () => {
   it('computed values serialize and rich methods work in static/instance modes', () => {
     const AppError = Error0.extend(statusExtension)
       .extend(codeExtension)
-      .extend('computed', 'summary', (error: Error0) => {
-        const code = error.flow('code').find((value: unknown) => typeof value === 'string')
-        return `${error.message}:${code ?? 'none'}`
+      .extend('computed', 'summary', (error) => {
+        return `${error.message}:${error.code ?? 'none'}`
       })
-      .extend('method', 'hasCode', (error: Error0, expectedCode: unknown) =>
-        error.flow('code').some((value: unknown) => value === expectedCode),
-      )
+      .extend('method', 'hasCode', (error, expectedCode: string) => error.code === expectedCode)
 
     const error = new AppError('test', { status: 400, code: 'E400' })
     expect(error.summary).toBe('test:E400')

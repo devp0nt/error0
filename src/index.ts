@@ -1,19 +1,19 @@
-export type ErrorExtensionPropOptions<TInputValue, TOutputValue> = {
+export type ErrorExtensionPropOptions<TInputValue, TOutputValue, TError extends Error0 = Error0> = {
   setter: (value: TInputValue) => TOutputValue
-  getter: (error: Error0) => TOutputValue
+  getter: (error: TError) => TOutputValue
   serialize: (value: TOutputValue, isPublic: boolean) => unknown
 }
-export type ErrorExtensionCopmputedFn<TOutputValue> = (error: Error0) => TOutputValue
-export type ErrorExtensionMethodFn<TOutputValue, TArgs extends unknown[] = unknown[]> = (
-  error: Error0,
-  ...args: TArgs
-) => TOutputValue
+export type ErrorExtensionCopmputedFn<TOutputValue, TError extends Error0 = Error0> = (error: TError) => TOutputValue
+export type ErrorExtensionMethodFn<
+  TOutputValue,
+  TArgs extends unknown[] = unknown[],
+  TError extends Error0 = Error0,
+> = (error: TError, ...args: TArgs) => TOutputValue
 type ErrorMethodRecord = {
   args: unknown[]
   output: unknown
 }
 
-// Изменяем Record на более гибкий тип, чтобы не "глушить" вывод через any
 export type ErrorExtensionProps = { [key: string]: ErrorExtensionPropOptions<any, any> }
 export type ErrorExtensionComputed = { [key: string]: ErrorExtensionCopmputedFn<any> }
 export type ErrorExtensionMethods = { [key: string]: ErrorExtensionMethodFn<any, any[]> }
@@ -137,10 +137,7 @@ type ExtendErrorExtensionsMapWithProp<
   TKey extends string,
   TInputValue,
   TOutputValue,
-> = ExtendErrorExtensionsMap<
-  TMap,
-  ErrorExtension<Record<TKey, ErrorExtensionPropOptions<TInputValue, TOutputValue>>>
->
+> = ExtendErrorExtensionsMap<TMap, ErrorExtension<Record<TKey, ErrorExtensionPropOptions<TInputValue, TOutputValue>>>>
 type ExtendErrorExtensionsMapWithComputed<
   TMap extends ErrorExtensionsMap,
   TKey extends string,
@@ -156,11 +153,7 @@ type ExtendErrorExtensionsMapWithMethod<
   TOutputValue,
 > = ExtendErrorExtensionsMap<
   TMap,
-  ErrorExtension<
-    Record<never, never>,
-    Record<never, never>,
-    Record<TKey, ErrorExtensionMethodFn<TOutputValue, TArgs>>
-  >
+  ErrorExtension<Record<never, never>, Record<never, never>, Record<TKey, ErrorExtensionMethodFn<TOutputValue, TArgs>>>
 >
 
 type ExtensionsMapOf<TClass> = TClass extends { __extensionsMap?: infer TExtensionsMap }
@@ -169,28 +162,30 @@ type ExtensionsMapOf<TClass> = TClass extends { __extensionsMap?: infer TExtensi
     : EmptyExtensionsMap
   : EmptyExtensionsMap
 
-type ExtensionOfBuilder<TBuilder> = TBuilder extends ExtensionError0<
-  infer TProps,
-  infer TComputed,
-  infer TMethods
->
-  ? ErrorExtension<TProps, TComputed, TMethods>
-  : never
+type ExtensionsMapFromParts<
+  TProps extends ErrorExtensionProps,
+  TComputed extends ErrorExtensionComputed,
+  TMethods extends ErrorExtensionMethods,
+> = ErrorExtensionsMapOfExtension<ErrorExtension<TProps, TComputed, TMethods>>
+type BuilderError0<
+  TProps extends ErrorExtensionProps,
+  TComputed extends ErrorExtensionComputed,
+  TMethods extends ErrorExtensionMethods,
+> = Error0 & ErrorOutput<ExtensionsMapFromParts<TProps, TComputed, TMethods>>
+
+type ExtensionOfBuilder<TBuilder> =
+  TBuilder extends ExtensionError0<infer TProps, infer TComputed, infer TMethods>
+    ? ErrorExtension<TProps, TComputed, TMethods>
+    : never
 
 export class ExtensionError0<
   TProps extends ErrorExtensionProps = Record<never, never>,
   TComputed extends ErrorExtensionComputed = Record<never, never>,
   TMethods extends ErrorExtensionMethods = Record<never, never>,
 > {
-  private readonly _extension: ErrorExtension<
-    ErrorExtensionProps,
-    ErrorExtensionComputed,
-    ErrorExtensionMethods
-  >
+  private readonly _extension: ErrorExtension<ErrorExtensionProps, ErrorExtensionComputed, ErrorExtensionMethods>
 
-  constructor(
-    extension?: ErrorExtension<ErrorExtensionProps, ErrorExtensionComputed, ErrorExtensionMethods>,
-  ) {
+  constructor(extension?: ErrorExtension<ErrorExtensionProps, ErrorExtensionComputed, ErrorExtensionMethods>) {
     this._extension = {
       props: { ...(extension?.props ?? {}) },
       computed: { ...(extension?.computed ?? {}) },
@@ -200,21 +195,21 @@ export class ExtensionError0<
 
   prop<TKey extends string, TInputValue, TOutputValue>(
     key: TKey,
-    value: ErrorExtensionPropOptions<TInputValue, TOutputValue>,
+    value: ErrorExtensionPropOptions<TInputValue, TOutputValue, BuilderError0<TProps, TComputed, TMethods>>,
   ): ExtensionError0<AddPropToExtensionProps<TProps, TKey, TInputValue, TOutputValue>, TComputed, TMethods> {
     return this.extend('prop', key, value)
   }
 
   computed<TKey extends string, TOutputValue>(
     key: TKey,
-    value: ErrorExtensionCopmputedFn<TOutputValue>,
+    value: ErrorExtensionCopmputedFn<TOutputValue, BuilderError0<TProps, TComputed, TMethods>>,
   ): ExtensionError0<TProps, AddComputedToExtensionComputed<TComputed, TKey, TOutputValue>, TMethods> {
     return this.extend('computed', key, value)
   }
 
   method<TKey extends string, TArgs extends unknown[], TOutputValue>(
     key: TKey,
-    value: ErrorExtensionMethodFn<TOutputValue, TArgs>,
+    value: ErrorExtensionMethodFn<TOutputValue, TArgs, BuilderError0<TProps, TComputed, TMethods>>,
   ): ExtensionError0<TProps, TComputed, AddMethodToExtensionMethods<TMethods, TKey, TArgs, TOutputValue>> {
     return this.extend('method', key, value)
   }
@@ -222,25 +217,25 @@ export class ExtensionError0<
   extend<TKey extends string, TInputValue, TOutputValue>(
     kind: 'prop',
     key: TKey,
-    value: ErrorExtensionPropOptions<TInputValue, TOutputValue>,
+    value: ErrorExtensionPropOptions<TInputValue, TOutputValue, BuilderError0<TProps, TComputed, TMethods>>,
   ): ExtensionError0<AddPropToExtensionProps<TProps, TKey, TInputValue, TOutputValue>, TComputed, TMethods>
   extend<TKey extends string, TOutputValue>(
     kind: 'computed',
     key: TKey,
-    value: ErrorExtensionCopmputedFn<TOutputValue>,
+    value: ErrorExtensionCopmputedFn<TOutputValue, BuilderError0<TProps, TComputed, TMethods>>,
   ): ExtensionError0<TProps, AddComputedToExtensionComputed<TComputed, TKey, TOutputValue>, TMethods>
   extend<TKey extends string, TArgs extends unknown[], TOutputValue>(
     kind: 'method',
     key: TKey,
-    value: ErrorExtensionMethodFn<TOutputValue, TArgs>,
+    value: ErrorExtensionMethodFn<TOutputValue, TArgs, BuilderError0<TProps, TComputed, TMethods>>,
   ): ExtensionError0<TProps, TComputed, AddMethodToExtensionMethods<TMethods, TKey, TArgs, TOutputValue>>
   extend(
     kind: 'prop' | 'computed' | 'method',
     key: string,
     value:
-      | ErrorExtensionPropOptions<unknown, unknown>
-      | ErrorExtensionCopmputedFn<unknown>
-      | ErrorExtensionMethodFn<unknown>,
+      | ErrorExtensionPropOptions<unknown, unknown, any>
+      | ErrorExtensionCopmputedFn<unknown, any>
+      | ErrorExtensionMethodFn<unknown, unknown[], any>,
   ): ExtensionError0<any, any, any> {
     const nextProps: ErrorExtensionProps = { ...(this._extension.props ?? {}) }
     const nextComputed: ErrorExtensionComputed = { ...(this._extension.computed ?? {}) }
@@ -391,14 +386,6 @@ export class Error0 extends Error {
     return ctor.own(this, key)
   }
 
-  static get(error: object, key: string): unknown {
-    return (error as Record<string, unknown>)[key]
-  }
-  get(key: string): unknown {
-    const ctor = this.constructor as typeof Error0
-    return ctor.get(this, key)
-  }
-
   static flow(error: object, key: string, filter?: true | ((value: unknown) => boolean)): unknown[] {
     const values = this.causes(error).map((cause) => {
       const causeRecord = cause as Record<string, unknown>
@@ -448,7 +435,7 @@ export class Error0 extends Error {
     return ctor.causes(this, filter)
   }
 
-  static isInstance(error: unknown): error is Error0 {
+  static is(error: unknown): error is Error0 {
     return error instanceof this
   }
 
@@ -464,7 +451,7 @@ export class Error0 extends Error {
   }
 
   static from(error: unknown): Error0 {
-    if (this.isInstance(error)) {
+    if (this.is(error)) {
       return error
     }
     if (this.isLikeError0(error)) {
