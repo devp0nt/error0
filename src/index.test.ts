@@ -35,8 +35,8 @@ describe('Error0', () => {
     const AppError = Error0.extend({
       key: 'status',
       setter: (value: number) => value,
-      getter: ({ flow }) => {
-        for (const value of flow()) {
+      getter: (error) => {
+        for (const value of error.flow('status')) {
           const status = Number(value)
           if (!isNaN(status)) {
             return status
@@ -60,8 +60,8 @@ describe('Error0', () => {
     const statusExtension = Error0.extension({
       key: 'status',
       setter: (value: number) => value,
-      getter: ({ flow }) => {
-        for (const value of flow()) {
+      getter: (error) => {
+        for (const value of error.flow('status')) {
           const status = Number(value)
           if (!isNaN(status)) {
             return status
@@ -84,8 +84,8 @@ describe('Error0', () => {
   const statusExtension = Error0.extension({
     key: 'status',
     setter: (value: number) => value,
-    getter: ({ flow }) => {
-      for (const value of flow()) {
+    getter: (error) => {
+      for (const value of error.flow('status')) {
         const status = Number(value)
         if (!isNaN(status)) {
           return status
@@ -98,8 +98,8 @@ describe('Error0', () => {
   const codeExtension = Error0.extension({
     key: 'code',
     setter: (value: string) => value,
-    getter: ({ flow }) => {
-      for (const value of flow()) {
+    getter: (error) => {
+      for (const value of error.flow('code')) {
         if (typeof value === 'string') {
           return value
         }
@@ -157,6 +157,56 @@ describe('Error0', () => {
     expect(error2.status).toBe(400)
     expect(error2.code).toBe('code')
     expect(Error0.causes(error2)).toEqual([error2, error1, anotherError])
+  })
+
+  it('toJson uses identity by default and skips undefined extension values', () => {
+    const AppError = Error0.extend(statusExtension).extend({
+      key: 'code',
+      setter: (value: string) => value,
+      getter: (error) => {
+        for (const value of error.flow('code')) {
+          if (typeof value === 'string') {
+            return value
+          }
+        }
+        return undefined
+      },
+      toJson: () => undefined,
+    })
+    const error = new AppError('test', { status: 401, code: 'secret' })
+    const json = AppError.toJson(error) as Record<string, unknown>
+    expect(json.status).toBe(401)
+    expect('code' in json).toBe(false)
+  })
+
+  it('toJson keeps stack by default without stack extension', () => {
+    const AppError = Error0.extend(statusExtension)
+    const error = new AppError('test', { status: 500 })
+    const json = AppError.toJson(error) as Record<string, unknown>
+    expect(json.stack).toBe(error.stack)
+  })
+
+  it('stack extension can customize serialization', () => {
+    const AppError = Error0.extend({
+      key: 'stack',
+      setter: (value: string) => value,
+      getter: (error) => error.own('stack'),
+      toJson: () => undefined,
+    })
+    const error = new AppError('test')
+    const json = AppError.toJson(error) as Record<string, unknown>
+    expect('stack' in json).toBe(false)
+  })
+
+  it('toJson -> from roundtrip keeps extension values', () => {
+    const AppError = Error0.extend(statusExtension).extend(codeExtension)
+    const error = new AppError('test', { status: 409, code: 'conflict' })
+    const json = AppError.toJson(error)
+    const recreated = AppError.from(json)
+    expect(recreated).toBeInstanceOf(AppError)
+    expect(recreated.status).toBe(409)
+    expect(recreated.code).toBe('conflict')
+    expect(AppError.toJson(recreated)).toEqual(json)
   })
 })
 
