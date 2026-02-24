@@ -167,6 +167,7 @@ type ExtensionsMapFromParts<
   TComputed extends ErrorExtensionComputed,
   TMethods extends ErrorExtensionMethods,
 > = ErrorExtensionsMapOfExtension<ErrorExtension<TProps, TComputed, TMethods>>
+type ErrorInstanceOfMap<TMap extends ErrorExtensionsMap> = Error0 & ErrorOutput<TMap>
 type BuilderError0<
   TProps extends ErrorExtensionProps,
   TComputed extends ErrorExtensionComputed,
@@ -268,17 +269,17 @@ export type ClassError0<TExtensionsMap extends ErrorExtensionsMap = EmptyExtensi
     <TKey extends string, TInputValue, TOutputValue>(
       kind: 'prop',
       key: TKey,
-      value: ErrorExtensionPropOptions<TInputValue, TOutputValue>,
+      value: ErrorExtensionPropOptions<TInputValue, TOutputValue, ErrorInstanceOfMap<TExtensionsMap>>,
     ): ClassError0<ExtendErrorExtensionsMapWithProp<TExtensionsMap, TKey, TInputValue, TOutputValue>>
     <TKey extends string, TOutputValue>(
       kind: 'computed',
       key: TKey,
-      value: ErrorExtensionCopmputedFn<TOutputValue>,
+      value: ErrorExtensionCopmputedFn<TOutputValue, ErrorInstanceOfMap<TExtensionsMap>>,
     ): ClassError0<ExtendErrorExtensionsMapWithComputed<TExtensionsMap, TKey, TOutputValue>>
     <TKey extends string, TArgs extends unknown[], TOutputValue>(
       kind: 'method',
       key: TKey,
-      value: ErrorExtensionMethodFn<TOutputValue, TArgs>,
+      value: ErrorExtensionMethodFn<TOutputValue, TArgs, ErrorInstanceOfMap<TExtensionsMap>>,
     ): ClassError0<ExtendErrorExtensionsMapWithMethod<TExtensionsMap, TKey, TArgs, TOutputValue>>
   }
   extension: () => ExtensionError0
@@ -517,7 +518,10 @@ export class Error0 extends Error {
         configurable: true,
       })
       Object.defineProperty(Error0Extended, key, {
-        value: method,
+        value: function (error: unknown, ...args: unknown[]) {
+          const ctor = this.constructor as typeof Error0
+          return method(ctor.from(error), ...args)
+        },
         writable: true,
         enumerable: true,
         configurable: true,
@@ -548,19 +552,19 @@ export class Error0 extends Error {
     this: TThis,
     kind: 'prop',
     key: TKey,
-    value: ErrorExtensionPropOptions<TInputValue, TOutputValue>,
+    value: ErrorExtensionPropOptions<TInputValue, TOutputValue, ErrorInstanceOfMap<ExtensionsMapOf<TThis>>>,
   ): ClassError0<ExtendErrorExtensionsMapWithProp<ExtensionsMapOf<TThis>, TKey, TInputValue, TOutputValue>>
   static extend<TThis extends typeof Error0, TKey extends string, TOutputValue>(
     this: TThis,
     kind: 'computed',
     key: TKey,
-    value: ErrorExtensionCopmputedFn<TOutputValue>,
+    value: ErrorExtensionCopmputedFn<TOutputValue, ErrorInstanceOfMap<ExtensionsMapOf<TThis>>>,
   ): ClassError0<ExtendErrorExtensionsMapWithComputed<ExtensionsMapOf<TThis>, TKey, TOutputValue>>
   static extend<TThis extends typeof Error0, TKey extends string, TArgs extends unknown[], TOutputValue>(
     this: TThis,
     kind: 'method',
     key: TKey,
-    value: ErrorExtensionMethodFn<TOutputValue, TArgs>,
+    value: ErrorExtensionMethodFn<TOutputValue, TArgs, ErrorInstanceOfMap<ExtensionsMapOf<TThis>>>,
   ): ClassError0<ExtendErrorExtensionsMapWithMethod<ExtensionsMapOf<TThis>, TKey, TArgs, TOutputValue>>
   static extend(
     this: typeof Error0,

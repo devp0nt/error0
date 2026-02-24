@@ -213,6 +213,7 @@ describe('Error0', () => {
     expect(error.summary).toBe('test:E400')
     expect(error.hasCode('E400')).toBe(true)
     expect(AppError.hasCode(error, 'E400')).toBe(true)
+    expect(AppError.hasCode('just string', 'E400')).toBe(false)
     expect(AppError.serialize(error)).toMatchObject({ summary: 'test:E400' })
   })
 
