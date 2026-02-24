@@ -36,12 +36,16 @@ describe('Error0', () => {
     })
     .method('isStatus', (error, status: number) => error.status === status)
 
+  const codes = ['NOT_FOUND', 'BAD_REQUEST', 'UNAUTHORIZED'] as const
+  type Code = (typeof codes)[number]
   const codeExtension = Error0.extension().extend('prop', 'code', {
-    input: (value: string) => value,
+    input: (value: Code) => value,
     output: (error) => {
       for (const value of error.flow('code')) {
         if (typeof value === 'string') {
-          return value
+          if (codes.includes(value as Code)) {
+            return value as Code
+          }
         }
       }
       return undefined
@@ -109,10 +113,10 @@ describe('Error0', () => {
     const AppError1 = Error0.extend(statusExtension)
     const AppError2 = AppError1.extend(codeExtension)
     const error1 = new AppError1('test', { status: 400 })
-    const error2 = new AppError2('test', { status: 400, code: 'code1' })
+    const error2 = new AppError2('test', { status: 400, code: 'NOT_FOUND' })
     expect(error1.status).toBe(400)
     expect(error2.status).toBe(400)
-    expect(error2.code).toBe('code1')
+    expect(error2.code).toBe('NOT_FOUND')
     expectTypeOf<typeof AppError1>().toExtend<ClassError0>()
     expectTypeOf<typeof AppError2>().toExtend<ClassError0>()
     expectTypeOf<typeof AppError2>().toExtend<typeof AppError1>()
@@ -147,11 +151,11 @@ describe('Error0', () => {
     const AppError = Error0.extend(statusExtension).extend(codeExtension)
     const anotherError = new Error('another error')
     const error1 = new AppError('test1', { status: 400, cause: anotherError })
-    const error2 = new AppError('test2', { code: 'code', cause: error1 })
+    const error2 = new AppError('test2', { code: 'NOT_FOUND', cause: error1 })
     expect(error1.status).toBe(400)
     expect(error1.code).toBe(undefined)
     expect(error2.status).toBe(400)
-    expect(error2.code).toBe('code')
+    expect(error2.code).toBe('NOT_FOUND')
     expect(Error0.causes(error2)).toEqual([error2, error1, anotherError])
   })
 
@@ -200,13 +204,13 @@ describe('Error0', () => {
 
   it('.serialize() -> .from() roundtrip keeps extension values', () => {
     const AppError = Error0.extend(statusExtension).extend(codeExtension)
-    const error = new AppError('test', { status: 409, code: 'conflict' })
-    const json = AppError.serialize(error)
+    const error = new AppError('test', { status: 409, code: 'NOT_FOUND' })
+    const json = AppError.serialize(error, false)
     const recreated = AppError.from(json)
     expect(recreated).toBeInstanceOf(AppError)
     expect(recreated.status).toBe(409)
-    expect(recreated.code).toBe('conflict')
-    expect(AppError.serialize(recreated)).toEqual(json)
+    expect(recreated.code).toBe('NOT_FOUND')
+    expect(AppError.serialize(recreated, false)).toEqual(json)
   })
 
   it('computed values and rich methods work in static/instance modes', () => {
@@ -217,20 +221,20 @@ describe('Error0', () => {
       })
       .extend('method', 'hasCode', (error, expectedCode: string) => error.code === expectedCode)
 
-    const error = new AppError('test', { status: 400, code: 'E400' })
-    expect(error.summary).toBe('test:E400')
-    expect(error.hasCode('E400')).toBe(true)
-    expect(AppError.hasCode(error, 'E400')).toBe(true)
-    expect(AppError.hasCode('just string', 'E400')).toBe(false)
+    const error = new AppError('test', { status: 400, code: 'NOT_FOUND' })
+    expect(error.summary).toBe('test:NOT_FOUND')
+    expect(error.hasCode('NOT_FOUND')).toBe(true)
+    expect(AppError.hasCode(error, 'NOT_FOUND')).toBe(true)
+    expect(AppError.hasCode('just string', 'NOT_FOUND')).toBe(false)
     expect('summary' in AppError.serialize(error)).toBe(false)
   })
 
   it('serialize can hide props for public output', () => {
     const AppError = Error0.extend(statusExtension).extend(codeExtension)
-    const error = new AppError('test', { status: 401, code: 'SECRET' })
+    const error = new AppError('test', { status: 401, code: 'NOT_FOUND' })
     const privateJson = AppError.serialize(error, false) as Record<string, unknown>
     const publicJson = AppError.serialize(error, true) as Record<string, unknown>
-    expect(privateJson.code).toBe('SECRET')
+    expect(privateJson.code).toBe('NOT_FOUND')
     expect('code' in publicJson).toBe(false)
   })
 
@@ -257,14 +261,14 @@ describe('Error0', () => {
       .extend('refine', (error) => {
         if (error.cause instanceof ZodError) {
           error.status = 422
-          error.code = 'VALIDATION_ERROR'
+          error.code = 'NOT_FOUND'
           error.message = `Validation Error: ${error.message}`
         }
       })
     const error = AppError.from(parsedError)
     expect(error.message).toBe(`Validation Error: ${parsedError.message}`)
     expect(error.status).toBe(422)
-    expect(error.code).toBe('VALIDATION_ERROR')
+    expect(error.code).toBe('NOT_FOUND')
     const error1 = new AppError('test', { cause: parsedError })
     expect(error1.message).toBe('test')
     expect(error1.status).toBe(undefined)
@@ -285,7 +289,7 @@ describe('Error0', () => {
           error.message = `Validation Error: ${error.message}`
           return {
             status: 422,
-            code: 'VALIDATION_ERROR',
+            code: 'NOT_FOUND',
           }
         }
         return undefined
@@ -293,10 +297,41 @@ describe('Error0', () => {
     const error = AppError.from(parsedError)
     expect(error.message).toBe(`Validation Error: ${parsedError.message}`)
     expect(error.status).toBe(422)
-    expect(error.code).toBe('VALIDATION_ERROR')
+    expect(error.code).toBe('NOT_FOUND')
     const error1 = new AppError('test', { cause: parsedError })
     expect(error1.message).toBe('test')
     expect(error1.status).toBe(undefined)
     expect(error1.code).toBe(undefined)
+  })
+
+  it('can create and recongnize variant', () => {
+    const AppError = Error0.extend(statusExtension)
+      .extend(codeExtension)
+      .extend('prop', 'userId', {
+        input: (value: string) => value,
+        output: (error) => {
+          for (const value of error.flow('userId')) {
+            if (typeof value === 'string') {
+              return value
+            }
+          }
+          return undefined
+        },
+        serialize: (value) => value,
+      })
+    const UserError = AppError.variant('UserError', {
+      userId: true,
+    })
+    const error = new UserError('test', { userId: '123', status: 400 })
+    expect(error).toBeInstanceOf(UserError)
+    expect(error).toBeInstanceOf(AppError)
+    expect(error).toBeInstanceOf(Error0)
+    expect(error).toBeInstanceOf(Error)
+    expect(error.userId).toBe('123')
+    expect(error.status).toBe(400)
+    expect(error.code).toBe(undefined)
+    expectTypeOf<typeof error.userId>().toEqualTypeOf<string>()
+    // @ts-expect-error
+    new UserError('test')
   })
 })

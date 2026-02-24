@@ -1,6 +1,7 @@
 export type ErrorExtensionPropOptions<TInputValue, TOutputValue, TError extends Error0 = Error0> = {
   input: (value: TInputValue) => TOutputValue
   output: (error: TError) => TOutputValue
+  // TODO: in serialize we should get full error0 not just value
   serialize: (value: TOutputValue, isPublic: boolean) => unknown
 }
 export type ErrorExtensionCopmputedFn<TOutputValue, TError extends Error0 = Error0> = (error: TError) => TOutputValue
@@ -195,6 +196,12 @@ export class ExtensionError0<
   TMethods extends ErrorExtensionMethods = Record<never, never>,
 > {
   private readonly _extension: ErrorExtension<ErrorExtensionProps, ErrorExtensionComputed, ErrorExtensionMethods>
+
+  readonly Infer = undefined as unknown as {
+    props: TProps
+    computed: TComputed
+    methods: TMethods
+  }
 
   constructor(extension?: ErrorExtension<ErrorExtensionProps, ErrorExtensionComputed, ErrorExtensionMethods>) {
     this._extension = {
@@ -671,7 +678,7 @@ export class Error0 extends Error {
     return new ExtensionError0()
   }
 
-  static serialize(error: unknown, isPublic = false): object {
+  static serialize(error: unknown, isPublic = true): object {
     const error0 = this.from(error)
     const jsonWithUndefined: Record<string, unknown> = {
       name: error0.name,
@@ -698,7 +705,7 @@ export class Error0 extends Error {
     return Object.fromEntries(Object.entries(jsonWithUndefined).filter(([, value]) => value !== undefined)) as object
   }
 
-  serialize(isPublic = false): object {
+  serialize(isPublic = true): object {
     const ctor = this.constructor as typeof Error0
     return ctor.serialize(this, isPublic)
   }
