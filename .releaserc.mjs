@@ -26,7 +26,17 @@ export default {
         ],
     '@semantic-release/release-notes-generator',
     '@semantic-release/changelog',
-    '@semantic-release/npm',
-    '@semantic-release/github',
+    [
+      '@semantic-release/npm',
+      {
+        npmPublish: true,
+      },
+    ],
+    [
+      '@semantic-release/github',
+      {
+        repositoryUrl: 'https://github.com/devp0nt/error0',
+      },
+    ],
   ].filter(Boolean),
 }
