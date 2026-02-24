@@ -1,8 +1,7 @@
 export type ErrorExtensionPropOptions<TInputValue, TOutputValue, TError extends Error0 = Error0> = {
   input: (value: TInputValue) => TOutputValue
   output: (error: TError) => TOutputValue
-  // TODO: in serialize we should get full error0 not just value
-  serialize: (value: TOutputValue, isPublic: boolean) => unknown
+  serialize: (value: TOutputValue, error: TError, isPublic: boolean) => unknown
 }
 export type ErrorExtensionCopmputedFn<TOutputValue, TError extends Error0 = Error0> = (error: TError) => TOutputValue
 export type ErrorExtensionMethodFn<
@@ -695,7 +694,7 @@ export class Error0 extends Error {
     const extension = this._getResolvedExtension()
     for (const [key, prop] of Object.entries(extension.props)) {
       const value = prop.output(error0)
-      const jsonValue = prop.serialize(value, isPublic)
+      const jsonValue = prop.serialize(value, error0, isPublic)
       if (jsonValue !== undefined) {
         jsonWithUndefined[key] = jsonValue
       } else {

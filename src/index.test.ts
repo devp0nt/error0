@@ -50,7 +50,7 @@ describe('Error0', () => {
       }
       return undefined
     },
-    serialize: (value, isPublic) => (isPublic ? undefined : value),
+    serialize: (value, error, isPublic) => (isPublic ? undefined : value),
   })
 
   it('simple', () => {
