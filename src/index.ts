@@ -5,46 +5,111 @@ export type ErrorExtensionPropOptions<TInputValue, TOutputValue> = {
 }
 export type ErrorExtensionCopmputedFn<TOutputValue> = (error: Error0) => TOutputValue
 export type ErrorExtensionMethodFn<TOutputValue> = (error: Error0, ...args: unknown[]) => TOutputValue
-export type ErrorExtension_new = {
-  props: Record<string, ErrorExtensionPropOptions<unknown, unknown>>
-  computed: Record<string, ErrorExtensionCopmputedFn<unknown>>
-  methods: Record<string, ErrorExtensionMethodFn<unknown>>
+type ErrorMethodRecord = {
+  args: unknown[]
+  output: unknown
 }
-// props really stored values in Error0 instance
-// computed ever serializes always computed
-// methods become both public and static methods. When static used as is. When public then bind first argument to this
-// .toJson() is now .serialize() and it accept as second argument isPublic, so we can omit or rewrite some props on serailzation for client
-
-export type ErrorExtension<TKey extends string, TInputValue, TOutputValue> = {
-  key: TKey
-  setter: (value: TInputValue) => TOutputValue
-  getter: (error: Error0) => TOutputValue
-  toJson?: (value: TOutputValue) => unknown
+export type ErrorExtensionProps = Record<string, ErrorExtensionPropOptions<any, any>>
+export type ErrorExtensionComputed = Record<string, ErrorExtensionCopmputedFn<any>>
+export type ErrorExtensionMethods = Record<string, ErrorExtensionMethodFn<any>>
+export type ErrorExtension<
+  TProps extends ErrorExtensionProps,
+  TComputed extends ErrorExtensionComputed,
+  TMethods extends ErrorExtensionMethods,
+> = {
+  props?: TProps
+  computed?: TComputed
+  methods?: TMethods
 }
-export type ErrorExtensionsMap = Record<string, { input: unknown; output: unknown }>
-export type ExtendErrorExtensionsMap<
-  TMap extends ErrorExtensionsMap,
-  TExtension extends ErrorExtension<string, unknown, unknown>,
-> = TMap &
-  (TExtension extends ErrorExtension<infer TKey, infer TInputValue, infer TOutputValue>
-    ? Record<TKey, { input: TInputValue; output: TOutputValue }>
-    : unknown)
+export type ErrorExtensionsMap = {
+  props: Record<string, { input: unknown; output: unknown }>
+  computed: Record<string, unknown>
+  methods: Record<string, ErrorMethodRecord>
+}
 export type IsEmptyObject<T> = keyof T extends never ? true : false
 export type ErrorInputBase = {
   cause?: unknown
 }
 export type ErrorInput<TExtensionsMap extends ErrorExtensionsMap> =
-  IsEmptyObject<TExtensionsMap> extends true
+  IsEmptyObject<TExtensionsMap['props']> extends true
     ? ErrorInputBase
     : ErrorInputBase &
         Partial<{
-          [TKey in keyof TExtensionsMap]: TExtensionsMap[TKey]['input']
+          [TKey in keyof TExtensionsMap['props']]: TExtensionsMap['props'][TKey]['input']
         }>
-export type ErrorOutput<TExtensionsMap extends ErrorExtensionsMap> = {
-  [TKey in keyof TExtensionsMap]: TExtensionsMap[TKey]['output']
+
+type ErrorOutputProps<TExtensionsMap extends ErrorExtensionsMap> = {
+  [TKey in keyof TExtensionsMap['props']]: TExtensionsMap['props'][TKey]['output']
+}
+type ErrorOutputComputed<TExtensionsMap extends ErrorExtensionsMap> = {
+  [TKey in keyof TExtensionsMap['computed']]: TExtensionsMap['computed'][TKey]
+}
+type ErrorOutputMethods<TExtensionsMap extends ErrorExtensionsMap> = {
+  [TKey in keyof TExtensionsMap['methods']]: TExtensionsMap['methods'][TKey] extends {
+    args: infer TArgs extends unknown[]
+    output: infer TOutput
+  }
+    ? (...args: TArgs) => TOutput
+    : never
+}
+export type ErrorOutput<TExtensionsMap extends ErrorExtensionsMap> = ErrorOutputProps<TExtensionsMap> &
+  ErrorOutputComputed<TExtensionsMap> &
+  ErrorOutputMethods<TExtensionsMap>
+
+type ErrorStaticMethods<TExtensionsMap extends ErrorExtensionsMap> = {
+  [TKey in keyof TExtensionsMap['methods']]: TExtensionsMap['methods'][TKey] extends {
+    args: infer TArgs extends unknown[]
+    output: infer TOutput
+  }
+    ? (error: Error0, ...args: TArgs) => TOutput
+    : never
 }
 
-type EmptyExtensionsMap = Record<never, { input: never; output: never }>
+type EmptyExtensionsMap = {
+  props: Record<never, { input: never; output: never }>
+  computed: Record<never, never>
+  methods: Record<never, ErrorMethodRecord>
+}
+
+type ErrorExtensionResolved = {
+  props: Record<string, ErrorExtensionPropOptions<any, any>>
+  computed: Record<string, ErrorExtensionCopmputedFn<any>>
+  methods: Record<string, ErrorExtensionMethodFn<any>>
+}
+
+type ExtensionPropsMapOf<TExtension extends ErrorExtension> = {
+  [TKey in keyof NonNullable<TExtension['props']>]: NonNullable<
+    TExtension['props']
+  >[TKey] extends ErrorExtensionPropOptions<infer TInputValue, infer TOutputValue>
+    ? { input: TInputValue; output: TOutputValue }
+    : never
+}
+type ExtensionComputedMapOf<TExtension extends ErrorExtension> = {
+  [TKey in keyof NonNullable<TExtension['computed']>]: NonNullable<
+    TExtension['computed']
+  >[TKey] extends ErrorExtensionCopmputedFn<infer TOutputValue>
+    ? TOutputValue
+    : never
+}
+type ExtensionMethodsMapOf<TExtension extends ErrorExtension> = {
+  [TKey in keyof NonNullable<TExtension['methods']>]: NonNullable<TExtension['methods']>[TKey] extends (
+    error: Error0,
+    ...args: infer TArgs extends unknown[]
+  ) => infer TOutput
+    ? { args: TArgs; output: TOutput }
+    : never
+}
+type ErrorExtensionsMapOfExtension<TExtension extends ErrorExtension> = {
+  props: ExtensionPropsMapOf<TExtension>
+  computed: ExtensionComputedMapOf<TExtension>
+  methods: ExtensionMethodsMapOf<TExtension>
+}
+type ExtendErrorExtensionsMap<TMap extends ErrorExtensionsMap, TExtension extends ErrorExtension> = {
+  props: TMap['props'] & ErrorExtensionsMapOfExtension<TExtension>['props']
+  computed: TMap['computed'] & ErrorExtensionsMapOfExtension<TExtension>['computed']
+  methods: TMap['methods'] & ErrorExtensionsMapOfExtension<TExtension>['methods']
+}
+
 type ExtensionsMapOf<TClass> = TClass extends { __extensionsMap?: infer TExtensionsMap }
   ? TExtensionsMap extends ErrorExtensionsMap
     ? TExtensionsMap
@@ -56,16 +121,36 @@ export type ClassError0<TExtensionsMap extends ErrorExtensionsMap = EmptyExtensi
   new (input: { message: string } & ErrorInput<TExtensionsMap>): Error0 & ErrorOutput<TExtensionsMap>
   readonly __extensionsMap?: TExtensionsMap
   from: (error: unknown) => Error0 & ErrorOutput<TExtensionsMap>
-  toJson: (error: unknown) => object
-  extend: <TKey extends string, TInputValue, TOutputValue>(
-    extension: ErrorExtension<TKey, TInputValue, TOutputValue>,
-  ) => ClassError0<TExtensionsMap & Record<TKey, { input: TInputValue; output: TOutputValue }>>
-  extension: <T extends ErrorExtension<string, unknown, unknown>>(extension: T) => T
-}
+  serialize: (error: unknown, isPublic?: boolean) => object
+  extend: <TExtension extends ErrorExtension>(
+    extension: TExtension,
+  ) => ClassError0<ExtendErrorExtensionsMap<TExtensionsMap, TExtension>>
+  extension: <TExtension extends ErrorExtension>(extension: TExtension) => TExtension
+} & ErrorStaticMethods<TExtensionsMap>
 
 export class Error0 extends Error {
   static readonly __extensionsMap?: EmptyExtensionsMap
-  protected static _extensions: Array<ErrorExtension<string, unknown, unknown>> = []
+  protected static _extensions: ErrorExtension[] = []
+
+  private static readonly _emptyExtension: ErrorExtensionResolved = {
+    props: {},
+    computed: {},
+    methods: {},
+  }
+
+  private static _getResolvedExtension(this: typeof Error0): ErrorExtensionResolved {
+    const resolved: ErrorExtensionResolved = {
+      props: {},
+      computed: {},
+      methods: {},
+    }
+    for (const extension of this._extensions) {
+      Object.assign(resolved.props, extension.props ?? this._emptyExtension.props)
+      Object.assign(resolved.computed, extension.computed ?? this._emptyExtension.computed)
+      Object.assign(resolved.methods, extension.methods ?? this._emptyExtension.methods)
+    }
+    return resolved
+  }
 
   constructor(message: string, input?: ErrorInput<EmptyExtensionsMap>)
   constructor(input: { message: string } & ErrorInput<EmptyExtensionsMap>)
@@ -81,15 +166,17 @@ export class Error0 extends Error {
     this.name = 'Error0'
 
     const ctor = this.constructor as typeof Error0
-    for (const extension of ctor._extensions) {
-      if (extension.key in input) {
-        const ownValue = (input as Record<string, unknown>)[extension.key]
-        ;(this as Record<string, unknown>)[extension.key] = extension.setter(ownValue)
+    const extension = ctor._getResolvedExtension()
+
+    for (const [key, prop] of Object.entries(extension.props)) {
+      if (key in input) {
+        const ownValue = (input as Record<string, unknown>)[key]
+        ;(this as Record<string, unknown>)[key] = prop.setter(ownValue)
       } else {
-        Object.defineProperty(this, extension.key, {
-          get: () => extension.getter(this),
+        Object.defineProperty(this, key, {
+          get: () => prop.getter(this),
           set: (value) => {
-            Object.defineProperty(this, extension.key, {
+            Object.defineProperty(this, key, {
               value,
               writable: true,
               enumerable: true,
@@ -100,6 +187,22 @@ export class Error0 extends Error {
           configurable: true,
         })
       }
+    }
+
+    for (const [key, computed] of Object.entries(extension.computed)) {
+      Object.defineProperty(this, key, {
+        get: () => computed(this),
+        set: (value) => {
+          Object.defineProperty(this, key, {
+            value,
+            writable: true,
+            enumerable: true,
+            configurable: true,
+          })
+        },
+        enumerable: true,
+        configurable: true,
+      })
     }
   }
 
@@ -125,6 +228,14 @@ export class Error0 extends Error {
   own(key: string): unknown {
     const ctor = this.constructor as typeof Error0
     return ctor.own(this, key)
+  }
+
+  static get(error: object, key: string): unknown {
+    return (error as Record<string, unknown>)[key]
+  }
+  get(key: string): unknown {
+    const ctor = this.constructor as typeof Error0
+    return ctor.get(this, key)
   }
 
   static flow(error: object, key: string, filter?: true | ((value: unknown) => boolean)): unknown[] {
@@ -204,16 +315,17 @@ export class Error0 extends Error {
   private static _fromLikeError0(error: unknown): Error0 {
     const message = this._extractMessage(error)
     if (typeof error !== 'object' || error === null) {
-      return new Error0(message, { cause: error })
+      return new this(message, { cause: error })
     }
 
     const errorRecord = error as Record<string, unknown>
     const recreated = new this(message)
     const temp = new this(message, { cause: errorRecord })
-    for (const extension of this._extensions) {
-      const value = extension.getter(temp)
+    const extension = this._getResolvedExtension()
+    for (const [key, prop] of Object.entries(extension.props)) {
+      const value = key in errorRecord ? prop.setter(errorRecord[key]) : prop.getter(temp)
       if (value !== undefined) {
-        ;(recreated as unknown as Record<string, unknown>)[extension.key] = value
+        ;(recreated as unknown as Record<string, unknown>)[key] = value
       }
     }
     ;(recreated as unknown as { cause?: unknown }).cause = errorRecord.cause
@@ -225,7 +337,7 @@ export class Error0 extends Error {
 
   private static _fromNonError0(error: unknown): Error0 {
     const message = this._extractMessage(error)
-    return new Error0(message, { cause: error })
+    return new this(message, { cause: error })
   }
 
   private static _extractMessage(error: unknown): string {
@@ -238,24 +350,41 @@ export class Error0 extends Error {
     )
   }
 
-  static extend<TThis extends typeof Error0, TKey extends string, TInputValue, TOutputValue>(
+  static extend<TThis extends typeof Error0, TExtension extends ErrorExtension>(
     this: TThis,
-    extension: ErrorExtension<TKey, TInputValue, TOutputValue>,
-  ): ClassError0<ExtensionsMapOf<TThis> & Record<TKey, { input: TInputValue; output: TOutputValue }>>
-  static extend(this: typeof Error0, extension: ErrorExtension<string, unknown, unknown>): any {
+    extension: TExtension,
+  ): ClassError0<ExtendErrorExtensionsMap<ExtensionsMapOf<TThis>, TExtension>>
+  static extend(this: typeof Error0, extension: ErrorExtension): any {
     const Base = this as unknown as typeof Error0
     const Error0Extended = class Error0 extends Base {}
     ;(Error0Extended as typeof Error0)._extensions = [...Base._extensions, extension]
+
+    const resolved = (Error0Extended as typeof Error0)._getResolvedExtension()
+    for (const [key, method] of Object.entries(resolved.methods)) {
+      Object.defineProperty((Error0Extended as typeof Error0).prototype, key, {
+        value: function (...args: unknown[]) {
+          return method(this as Error0, ...args)
+        },
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      })
+      Object.defineProperty(Error0Extended, key, {
+        value: method,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      })
+    }
+
     return Error0Extended
   }
 
-  static extension<TKey extends string, TInputValue, TOutputValue>(
-    extension: ErrorExtension<TKey, TInputValue, TOutputValue>,
-  ): ErrorExtension<TKey, TInputValue, TOutputValue> {
+  static extension<TExtension extends ErrorExtension>(extension: TExtension): TExtension {
     return extension
   }
 
-  static toJson(error: unknown): object {
+  static serialize(error: unknown, isPublic = false): object {
     const error0 = this.from(error)
     const jsonWithUndefined: Record<string, unknown> = {
       name: error0.name,
@@ -263,46 +392,26 @@ export class Error0 extends Error {
       cause: error0.cause,
       stack: error0.stack,
     }
-    for (const extension of this._extensions) {
-      const value = extension.getter(error0)
-      const jsonValue = extension.toJson ? extension.toJson(value) : value
+
+    const extension = this._getResolvedExtension()
+    for (const [key, prop] of Object.entries(extension.props)) {
+      const value = prop.getter(error0)
+      const jsonValue = prop.serialize(value, isPublic)
       if (jsonValue !== undefined) {
-        jsonWithUndefined[extension.key] = jsonValue
+        jsonWithUndefined[key] = jsonValue
+      }
+    }
+    for (const [key, computed] of Object.entries(extension.computed)) {
+      const value = computed(error0)
+      if (value !== undefined) {
+        jsonWithUndefined[key] = value
       }
     }
     return Object.fromEntries(Object.entries(jsonWithUndefined).filter(([, value]) => value !== undefined)) as object
   }
-  toJson(): object {
+
+  serialize(isPublic = false): object {
     const ctor = this.constructor as typeof Error0
-    return ctor.toJson(this)
+    return ctor.serialize(this, isPublic)
   }
 }
-
-// example
-// const extension = Error0.extension({
-//   key: 'status',
-//   getter: (values) => {
-//     const number = Number(values[0].status)
-//     if (isNaN(number)) {
-//       return undefined
-//     }
-//     return number
-//   },
-// }
-
-// const AppError = (Error0.use(extension)
-// .use('code', (values) => {
-//   return values[1].code
-// })
-// .use('expected', (values) => {
-//   return values[1] || false
-// })
-
-// const error = new AppError('test', {
-//   code: 'my_code',
-//   expected: true,
-//   // here all meta fields is optional we can even not prvide second argument
-// })
-
-// error.expected // alway defined, becouse of TValue
-// error.status // number | undefiend, becouse of TValue
