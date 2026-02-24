@@ -266,9 +266,9 @@ describe('Error0', () => {
     expect(error.status).toBe(422)
     expect(error.code).toBe('VALIDATION_ERROR')
     const error1 = new AppError('test', { cause: parsedError })
-    expect(error1.message).toBe(error.message)
-    expect(error1.status).toBe(error.status)
-    expect(error1.code).toBe(error.code)
+    expect(error1.message).toBe('test')
+    expect(error1.status).toBe(undefined)
+    expect(error1.code).toBe(undefined)
   })
 
   it('refine message and other props via return output values from extension', () => {
@@ -282,35 +282,6 @@ describe('Error0', () => {
       .extend(codeExtension)
       .extend('refine', (error) => {
         if (error.cause instanceof ZodError) {
-          error.message = `Validation Error: ${error.message}`
-          return {
-            status: 422,
-            code: 'VALIDATION_ERROR',
-          }
-        }
-        return undefined
-      })
-    const error = AppError.from(parsedError)
-    expect(error.message).toBe(`Validation Error: ${parsedError.message}`)
-    expect(error.status).toBe(422)
-    expect(error.code).toBe('VALIDATION_ERROR')
-    const error1 = new AppError('test', { cause: parsedError })
-    expect(error1.message).toBe(error.message)
-    expect(error1.status).toBe(error.status)
-    expect(error1.code).toBe(error.code)
-  })
-
-  it('refine message and other props only when called by .from() not by constructor', () => {
-    const schema = z.object({
-      x: z.string(),
-    })
-    const parseResult = schema.safeParse({ x: 123 })
-    const parsedError = parseResult.error
-    assert.ok(parsedError)
-    const AppError = Error0.extend(statusExtension)
-      .extend(codeExtension)
-      .extend('refine', (error, isFrom) => {
-        if (isFrom && error.cause instanceof ZodError) {
           error.message = `Validation Error: ${error.message}`
           return {
             status: 422,

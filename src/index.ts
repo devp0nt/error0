@@ -9,9 +9,7 @@ export type ErrorExtensionMethodFn<
   TArgs extends unknown[] = unknown[],
   TError extends Error0 = Error0,
 > = (error: TError, ...args: TArgs) => TOutputValue
-export type ErrorExtensionRefineResult<TOutputProps extends Record<string, unknown>> =
-  | Partial<TOutputProps>
-  | undefined
+export type ErrorExtensionRefineResult<TOutputProps extends Record<string, unknown>> = Partial<TOutputProps> | undefined
 export type ErrorExtensionRefineFn<
   TError extends Error0 = Error0,
   TOutputProps extends Record<string, unknown> = Record<never, never>,
@@ -523,7 +521,7 @@ export class Error0 extends Error {
   private static _fromLikeError0(error: unknown): Error0 {
     const message = this._extractMessage(error)
     if (typeof error !== 'object' || error === null) {
-      return new this(message, { cause: error })
+      return this._applyRefine(new this(message, { cause: error }))
     }
 
     const errorRecord = error as Record<string, unknown>
@@ -540,7 +538,7 @@ export class Error0 extends Error {
     if (typeof errorRecord.stack === 'string') {
       recreated.stack = errorRecord.stack
     }
-    return recreated
+    return this._applyRefine(recreated)
   }
 
   private static _fromNonError0(error: unknown): Error0 {
@@ -628,10 +626,7 @@ export class Error0 extends Error {
   static extend<TThis extends typeof Error0>(
     this: TThis,
     kind: 'refine',
-    value: ErrorExtensionRefineFn<
-      ErrorInstanceOfMap<ExtensionsMapOf<TThis>>,
-      ErrorOutputProps<ExtensionsMapOf<TThis>>
-    >,
+    value: ErrorExtensionRefineFn<ErrorInstanceOfMap<ExtensionsMapOf<TThis>>, ErrorOutputProps<ExtensionsMapOf<TThis>>>,
   ): ClassError0<ExtensionsMapOf<TThis>>
   static extend(
     this: typeof Error0,
