@@ -1,3 +1,20 @@
+export type ErrorExtensionPropOptions<TInputValue, TOutputValue> = {
+  setter: (value: TInputValue) => TOutputValue
+  getter: (error: Error0) => TOutputValue
+  serialize: (value: TOutputValue, isPublic: boolean) => unknown
+}
+export type ErrorExtensionCopmputedFn<TOutputValue> = (error: Error0) => TOutputValue
+export type ErrorExtensionMethodFn<TOutputValue> = (error: Error0, ...args: unknown[]) => TOutputValue
+export type ErrorExtension_new = {
+  props: Record<string, ErrorExtensionPropOptions<unknown, unknown>>
+  computed: Record<string, ErrorExtensionCopmputedFn<unknown>>
+  methods: Record<string, ErrorExtensionMethodFn<unknown>>
+}
+// props really stored values in Error0 instance
+// computed ever serializes always computed
+// methods become both public and static methods. When static used as is. When public then bind first argument to this
+// .toJson() is now .serialize() and it accept as second argument isPublic, so we can omit or rewrite some props on serailzation for client
+
 export type ErrorExtension<TKey extends string, TInputValue, TOutputValue> = {
   key: TKey
   setter: (value: TInputValue) => TOutputValue
