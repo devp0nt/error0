@@ -308,7 +308,7 @@ export type ClassError0<TExtensionsMap extends ErrorExtensionsMap = EmptyExtensi
   new (input: { message: string } & ErrorInput<TExtensionsMap>): Error0 & ErrorOutput<TExtensionsMap>
   readonly __extensionsMap?: TExtensionsMap
   from: (error: unknown) => Error0 & ErrorOutput<TExtensionsMap>
-  serialize: (error: unknown, isPublic?: boolean) => object
+  serialize: (error: unknown, isPublic?: boolean) => Record<string, unknown>
   extend: {
     <TBuilder extends ExtensionError0>(
       extension: TBuilder,
@@ -682,12 +682,13 @@ export class Error0 extends Error {
     return new ExtensionError0()
   }
 
-  static serialize(error: unknown, isPublic = true): object {
+  static serialize(error: unknown, isPublic = true): Record<string, unknown> {
     const error0 = this.from(error)
     const jsonWithUndefined: Record<string, unknown> = {
       name: error0.name,
       message: error0.message,
-      cause: error0.cause,
+      // we do not serialize causes, it is enough that we have floated props and refine helper
+      // cause: error0.cause,
       stack: error0.stack,
     }
 
@@ -706,7 +707,10 @@ export class Error0 extends Error {
         }
       }
     }
-    return Object.fromEntries(Object.entries(jsonWithUndefined).filter(([, value]) => value !== undefined)) as object
+    return Object.fromEntries(Object.entries(jsonWithUndefined).filter(([, value]) => value !== undefined)) as Record<
+      string,
+      unknown
+    >
   }
 
   serialize(isPublic = true): object {

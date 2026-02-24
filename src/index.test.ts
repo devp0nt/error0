@@ -175,7 +175,7 @@ describe('Error0', () => {
       serialize: () => undefined,
     })
     const error = new AppError('test', { status: 401, code: 'secret' })
-    const json = AppError.serialize(error) as Record<string, unknown>
+    const json = AppError.serialize(error)
     expect(json.status).toBe(401)
     expect('code' in json).toBe(false)
   })
@@ -183,14 +183,14 @@ describe('Error0', () => {
   it('serialize keeps stack by default without stack extension', () => {
     const AppError = Error0.extend(statusExtension)
     const error = new AppError('test', { status: 500 })
-    const json = AppError.serialize(error) as Record<string, unknown>
+    const json = AppError.serialize(error)
     expect(json.stack).toBe(error.stack)
   })
 
   it('stack extension can customize serialization of stack prop', () => {
     const AppError = Error0.extend('prop', 'stack', {
       input: (value: string) => value,
-      output: (error: Error0) => {
+      output: (error) => {
         const stack = error.own('stack')
         if (typeof stack === 'string') {
           return stack
@@ -200,7 +200,7 @@ describe('Error0', () => {
       serialize: () => undefined,
     })
     const error = new AppError('test')
-    const json = AppError.serialize(error) as Record<string, unknown>
+    const json = AppError.serialize(error)
     expect('stack' in json).toBe(false)
   })
 
@@ -213,6 +213,16 @@ describe('Error0', () => {
     expect(recreated.status).toBe(409)
     expect(recreated.code).toBe('NOT_FOUND')
     expect(AppError.serialize(recreated, false)).toEqual(json)
+  })
+
+  it('.serialize() floated props and not serialize causes', () => {
+    const AppError = Error0.extend(statusExtension).extend(codeExtension)
+    const error1 = new AppError('test', { status: 409 })
+    const error2 = new AppError('test', { code: 'NOT_FOUND', cause: error1 })
+    const json = AppError.serialize(error2, false)
+    expect(json.status).toBe(409)
+    expect(json.code).toBe('NOT_FOUND')
+    expect('cause' in json).toBe(false)
   })
 
   it('computed values and rich methods work in static/instance modes', () => {
@@ -234,8 +244,8 @@ describe('Error0', () => {
   it('serialize can hide props for public output', () => {
     const AppError = Error0.extend(statusExtension).extend(codeExtension)
     const error = new AppError('test', { status: 401, code: 'NOT_FOUND' })
-    const privateJson = AppError.serialize(error, false) as Record<string, unknown>
-    const publicJson = AppError.serialize(error, true) as Record<string, unknown>
+    const privateJson = AppError.serialize(error, false)
+    const publicJson = AppError.serialize(error, true)
     expect(privateJson.code).toBe('NOT_FOUND')
     expect('code' in publicJson).toBe(false)
   })
