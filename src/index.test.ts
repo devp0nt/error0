@@ -344,6 +344,7 @@ describe('Error0', () => {
   // becouse you can thorw any errorm and when you do AppError.from(yourError)
   // can use refine to assign desired props to error, it is enough for transport
   // you even can create computed or method to retrieve your error, so no problems with variants
+
   // it('can create and recongnize variant', () => {
   //   const AppError = Error0.extend(statusExtension)
   //     .extend(codeExtension)
