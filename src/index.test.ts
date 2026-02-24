@@ -117,6 +117,8 @@ describe('Error0', () => {
     expect(error1.status).toBe(400)
     expect(error2.status).toBe(400)
     expect(error2.code).toBe('NOT_FOUND')
+    expectTypeOf<typeof error2.status>().toEqualTypeOf<number | undefined>()
+    expectTypeOf<typeof error2.code>().toEqualTypeOf<'NOT_FOUND' | 'BAD_REQUEST' | 'UNAUTHORIZED' | undefined>()
     expectTypeOf<typeof AppError1>().toExtend<ClassError0>()
     expectTypeOf<typeof AppError2>().toExtend<ClassError0>()
     expectTypeOf<typeof AppError2>().toExtend<typeof AppError1>()

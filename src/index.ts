@@ -190,6 +190,8 @@ type ExtensionOfBuilder<TBuilder> =
     ? ErrorExtension<TProps, TComputed, TMethods>
     : never
 
+export type ErrorFlowPolicy = 'instance' | 'error0' | 'likeError0' | 'all'
+
 export class ExtensionError0<
   TProps extends ErrorExtensionProps = Record<never, never>,
   TComputed extends ErrorExtensionComputed = Record<never, never>,
@@ -440,29 +442,21 @@ export class Error0 extends Error {
     return ctor.own(this, key)
   }
 
-  static flow(error: object, key: string, filter?: true | ((value: unknown) => boolean)): unknown[] {
-    const values = this.causes(error).map((cause) => {
+  static flow(error: object, key: string, policy: ErrorFlowPolicy = 'likeError0'): unknown[] {
+    return this.causes(error, policy).map((cause) => {
       const causeRecord = cause as Record<string, unknown>
       if (this.isSelfProperty(causeRecord, key)) {
         return causeRecord[key]
       }
       return undefined
     })
-
-    if (filter === undefined) {
-      return values
-    }
-    if (filter === true) {
-      return values.filter((value) => value !== undefined)
-    }
-    return values.filter((value) => filter(value))
   }
-  flow(key: string, filter?: true | ((value: unknown) => boolean)): unknown[] {
+  flow(key: string, policy: ErrorFlowPolicy = 'likeError0'): unknown[] {
     const ctor = this.constructor as typeof Error0
-    return ctor.flow(this, key, filter)
+    return ctor.flow(this, key, policy)
   }
 
-  static causes(error: object, filter?: (cause: object) => boolean): object[] {
+  static causes(error: object, policy: ErrorFlowPolicy = 'all'): object[] {
     const causes: object[] = []
     let current: unknown = error
     const maxDepth = 99
@@ -475,18 +469,29 @@ export class Error0 extends Error {
       if (seen.has(current)) {
         break
       }
-      seen.add(current)
-      if (!filter || filter(current)) {
-        causes.push(current)
+      if (policy === 'instance') {
+        if (!this.is(current)) {
+          break
+        }
+      } else if (policy === 'error0') {
+        if (!this.isError0(current)) {
+          break
+        }
+      } else if (policy === 'likeError0') {
+        if (!this.isLikeError0(current)) {
+          break
+        }
       }
+      seen.add(current)
+      causes.push(current)
       current = (current as { cause?: unknown }).cause
     }
 
     return causes
   }
-  causes(filter?: (cause: object) => boolean): object[] {
+  causes(policy: ErrorFlowPolicy = 'all'): object[] {
     const ctor = this.constructor as typeof Error0
-    return ctor.causes(this, filter)
+    return ctor.causes(this, policy)
   }
 
   static is(error: unknown): error is Error0 {
