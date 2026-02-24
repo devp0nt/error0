@@ -84,7 +84,7 @@ type ErrorStaticMethods<TExtensionsMap extends ErrorExtensionsMap> = {
     args: infer TArgs extends unknown[]
     output: infer TOutput
   }
-    ? (error: Error0, ...args: TArgs) => TOutput
+    ? (error: unknown, ...args: TArgs) => TOutput
     : never
 }
 
@@ -519,8 +519,7 @@ export class Error0 extends Error {
       })
       Object.defineProperty(Error0Extended, key, {
         value: function (error: unknown, ...args: unknown[]) {
-          const ctor = this.constructor as typeof Error0
-          return method(ctor.from(error), ...args)
+          return method(this.from(error), ...args)
         },
         writable: true,
         enumerable: true,
