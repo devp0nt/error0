@@ -4,18 +4,21 @@ export type ErrorExtensionPropOptions<TInputValue, TOutputValue> = {
   serialize: (value: TOutputValue, isPublic: boolean) => unknown
 }
 export type ErrorExtensionCopmputedFn<TOutputValue> = (error: Error0) => TOutputValue
-export type ErrorExtensionMethodFn<TOutputValue> = (error: Error0, ...args: unknown[]) => TOutputValue
+export type ErrorExtensionMethodFn<TOutputValue, TArgs extends unknown[] = unknown[]> = (
+  error: Error0,
+  ...args: TArgs
+) => TOutputValue
 type ErrorMethodRecord = {
   args: unknown[]
   output: unknown
 }
 export type ErrorExtensionProps = Record<string, ErrorExtensionPropOptions<any, any>>
 export type ErrorExtensionComputed = Record<string, ErrorExtensionCopmputedFn<any>>
-export type ErrorExtensionMethods = Record<string, ErrorExtensionMethodFn<any>>
+export type ErrorExtensionMethods = Record<string, ErrorExtensionMethodFn<any, any[]>>
 export type ErrorExtension<
-  TProps extends ErrorExtensionProps,
-  TComputed extends ErrorExtensionComputed,
-  TMethods extends ErrorExtensionMethods,
+  TProps extends ErrorExtensionProps = Record<never, never>,
+  TComputed extends ErrorExtensionComputed = Record<never, never>,
+  TMethods extends ErrorExtensionMethods = Record<never, never>,
 > = {
   props?: TProps
   computed?: TComputed
@@ -72,9 +75,9 @@ type EmptyExtensionsMap = {
 }
 
 type ErrorExtensionResolved = {
-  props: Record<string, ErrorExtensionPropOptions<any, any>>
-  computed: Record<string, ErrorExtensionCopmputedFn<any>>
-  methods: Record<string, ErrorExtensionMethodFn<any>>
+  props: Record<string, ErrorExtensionPropOptions<unknown, unknown>>
+  computed: Record<string, ErrorExtensionCopmputedFn<unknown>>
+  methods: Record<string, ErrorExtensionMethodFn<unknown>>
 }
 
 type ExtensionPropsMapOf<TExtension extends ErrorExtension> = {
@@ -122,10 +125,20 @@ export type ClassError0<TExtensionsMap extends ErrorExtensionsMap = EmptyExtensi
   readonly __extensionsMap?: TExtensionsMap
   from: (error: unknown) => Error0 & ErrorOutput<TExtensionsMap>
   serialize: (error: unknown, isPublic?: boolean) => object
-  extend: <TExtension extends ErrorExtension>(
-    extension: TExtension,
-  ) => ClassError0<ExtendErrorExtensionsMap<TExtensionsMap, TExtension>>
-  extension: <TExtension extends ErrorExtension>(extension: TExtension) => TExtension
+  extend: <
+    TProps extends ErrorExtensionProps,
+    TComputed extends ErrorExtensionComputed,
+    TMethods extends ErrorExtensionMethods,
+  >(
+    extension: ErrorExtension<TProps, TComputed, TMethods>,
+  ) => ClassError0<ExtendErrorExtensionsMap<TExtensionsMap, ErrorExtension<TProps, TComputed, TMethods>>>
+  extension: <
+    TProps extends ErrorExtensionProps,
+    TComputed extends ErrorExtensionComputed,
+    TMethods extends ErrorExtensionMethods,
+  >(
+    extension: ErrorExtension<TProps, TComputed, TMethods>,
+  ) => ErrorExtension<TProps, TComputed, TMethods>
 } & ErrorStaticMethods<TExtensionsMap>
 
 export class Error0 extends Error {
@@ -350,11 +363,19 @@ export class Error0 extends Error {
     )
   }
 
-  static extend<TThis extends typeof Error0, TExtension extends ErrorExtension>(
+  static extend<
+    TThis extends typeof Error0,
+    TProps extends ErrorExtensionProps,
+    TComputed extends ErrorExtensionComputed,
+    TMethods extends ErrorExtensionMethods,
+  >(
     this: TThis,
-    extension: TExtension,
-  ): ClassError0<ExtendErrorExtensionsMap<ExtensionsMapOf<TThis>, TExtension>>
-  static extend(this: typeof Error0, extension: ErrorExtension): any {
+    extension: ErrorExtension<TProps, TComputed, TMethods>,
+  ): ClassError0<ExtendErrorExtensionsMap<ExtensionsMapOf<TThis>, ErrorExtension<TProps, TComputed, TMethods>>>
+  static extend(
+    this: typeof Error0,
+    extension: ErrorExtension<ErrorExtensionProps, ErrorExtensionComputed, ErrorExtensionMethods>,
+  ): any {
     const Base = this as unknown as typeof Error0
     const Error0Extended = class Error0 extends Base {}
     ;(Error0Extended as typeof Error0)._extensions = [...Base._extensions, extension]
@@ -380,7 +401,11 @@ export class Error0 extends Error {
     return Error0Extended
   }
 
-  static extension<TExtension extends ErrorExtension>(extension: TExtension): TExtension {
+  static extension<
+    TProps extends ErrorExtensionProps,
+    TComputed extends ErrorExtensionComputed,
+    TMethods extends ErrorExtensionMethods,
+  >(extension: ErrorExtension<TProps, TComputed, TMethods>): ErrorExtension<TProps, TComputed, TMethods> {
     return extension
   }
 

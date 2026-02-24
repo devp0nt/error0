@@ -35,7 +35,7 @@ describe('Error0', () => {
       },
     },
     methods: {
-      isStatus: (error, status: number) => error.status === status,
+      isStatus: (error, status: number) => error.flow('status').some((value) => value === status),
     },
   })
 
@@ -167,7 +167,22 @@ describe('Error0', () => {
   })
 
   it('serialize uses identity by default and skips undefined extension values', () => {
-    const AppError = Error0.extend(statusExtension).extend(codeExtension)
+    const AppError = Error0.extend(statusExtension).extend({
+      props: {
+        code: {
+          setter: (value: string) => value,
+          getter: (error) => {
+            for (const value of error.flow('code')) {
+              if (typeof value === 'string') {
+                return value
+              }
+            }
+            return undefined
+          },
+          serialize: () => undefined,
+        },
+      },
+    })
     const error = new AppError('test', { status: 401, code: 'secret' })
     const json = AppError.serialize(error) as Record<string, unknown>
     expect(json.status).toBe(401)
@@ -186,7 +201,7 @@ describe('Error0', () => {
       props: {
         stack: {
           setter: (value: string) => value,
-          getter: (error) => error.own('stack'),
+          getter: (error: Error0) => error.own('stack'),
           serialize: () => undefined,
         },
       },
@@ -215,13 +230,14 @@ describe('Error0', () => {
       .extend({
         props: {},
         computed: {
-          summary: (error) => {
-            const code = error.flow('code').find((value) => typeof value === 'string')
+          summary: (error: Error0) => {
+            const code = error.flow('code').find((value: unknown) => typeof value === 'string')
             return `${error.message}:${code ?? 'none'}`
           },
         },
         methods: {
-          hasCode: (error, expectedCode) => error.flow('code').some((value) => value === expectedCode),
+          hasCode: (error: Error0, expectedCode: unknown) =>
+            error.flow('code').some((value: unknown) => value === expectedCode),
         },
       })
 
