@@ -615,12 +615,13 @@ export class Error0 extends Error {
       const jsonValue = prop.serialize(value, isPublic)
       if (jsonValue !== undefined) {
         jsonWithUndefined[key] = jsonValue
-      }
-    }
-    for (const [key, computed] of Object.entries(extension.computed)) {
-      const value = computed(error0)
-      if (value !== undefined) {
-        jsonWithUndefined[key] = value
+      } else {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+          delete jsonWithUndefined[key]
+        } catch {
+          // ignore
+        }
       }
     }
     return Object.fromEntries(Object.entries(jsonWithUndefined).filter(([, value]) => value !== undefined)) as object

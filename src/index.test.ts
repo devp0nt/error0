@@ -1,6 +1,8 @@
 import { describe, expect, expectTypeOf, it } from 'bun:test'
 import type { ClassError0 } from './index.js'
 import { Error0 } from './index.js'
+import z, { ZodError } from 'zod'
+import * as assert from 'node:assert'
 
 const fixStack = (stack: string | undefined) => {
   if (!stack) {
@@ -207,7 +209,7 @@ describe('Error0', () => {
     expect(AppError.serialize(recreated)).toEqual(json)
   })
 
-  it('computed values serialize and rich methods work in static/instance modes', () => {
+  it('computed values and rich methods work in static/instance modes', () => {
     const AppError = Error0.extend(statusExtension)
       .extend(codeExtension)
       .extend('computed', 'summary', (error) => {
@@ -220,7 +222,7 @@ describe('Error0', () => {
     expect(error.hasCode('E400')).toBe(true)
     expect(AppError.hasCode(error, 'E400')).toBe(true)
     expect(AppError.hasCode('just string', 'E400')).toBe(false)
-    expect(AppError.serialize(error)).toMatchObject({ summary: 'test:E400' })
+    expect('summary' in AppError.serialize(error)).toBe(false)
   })
 
   it('serialize can hide props for public output', () => {
@@ -230,5 +232,62 @@ describe('Error0', () => {
     const publicJson = AppError.serialize(error, true) as Record<string, unknown>
     expect(privateJson.code).toBe('SECRET')
     expect('code' in publicJson).toBe(false)
+  })
+
+  it('by default error0 created from another error has same message', () => {
+    const schema = z.object({
+      x: z.string(),
+    })
+    const parseResult = schema.safeParse({ x: 123 })
+    const parsedError = parseResult.error
+    assert.ok(parsedError)
+    const error = Error0.from(parsedError)
+    expect(error.message).toBe(parsedError.message)
+  })
+
+  it.only('error0 can normalize message and other props via extension and direct transformations', () => {
+    const schema = z.object({
+      x: z.string(),
+    })
+    const parseResult = schema.safeParse({ x: 123 })
+    const parsedError = parseResult.error
+    assert.ok(parsedError)
+    const AppError = Error0.extend(statusExtension)
+      .extend(codeExtension)
+      .extend('normalize', (error) => {
+        if (error instanceof ZodError) {
+          error.status = 422
+          error.code = 'VALIDATION_ERROR'
+          error.message = `Validation Error: ${error.message}`
+        }
+      })
+    const error = AppError.from(parsedError)
+    expect(error.message).toBe('Validation Error: Invalid value')
+    expect(error.status).toBe(422)
+    expect(error.code).toBe('VALIDATION_ERROR')
+  })
+
+  it.only('error0 can normalize message and other props via extension and return output values from extension', () => {
+    const schema = z.object({
+      x: z.string(),
+    })
+    const parseResult = schema.safeParse({ x: 123 })
+    const parsedError = parseResult.error
+    assert.ok(parsedError)
+    const AppError = Error0.extend(statusExtension)
+      .extend(codeExtension)
+      .extend('normalize', (error) => {
+        if (error instanceof ZodError) {
+          return {
+            status: 422,
+            code: 'VALIDATION_ERROR',
+            message: `Validation Error: ${error.message}`,
+          }
+        }
+      })
+    const error = AppError.from(parsedError)
+    expect(error.message).toBe('Validation Error: Invalid value')
+    expect(error.status).toBe(422)
+    expect(error.code).toBe('VALIDATION_ERROR')
   })
 })
