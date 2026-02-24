@@ -18,39 +18,46 @@ const fixStack = (stack: string | undefined) => {
 }
 
 describe('Error0', () => {
-  const statusExtension = Error0.extension()
-    .prop('status', {
-      setter: (value: number) => value,
-      getter: (error) => {
-        for (const value of error.flow('status')) {
-          const status = Number(value)
-          if (!Number.isNaN(status)) {
-            return status
+  const statusExtension = Error0.extension({
+    props: {
+      status: {
+        setter: (value: number) => value,
+        getter: (error) => {
+          for (const value of error.flow('status')) {
+            const status = Number(value)
+            if (!Number.isNaN(status)) {
+              return status
+            }
           }
-        }
-        return undefined
+          return undefined
+        },
+        serialize: (value) => value,
       },
-      serialize: (value) => value,
-    })
-    .method('isStatus', (error, status: number) => error.flow('status').some((value) => value === status))
+    },
+    methods: {
+      isStatus: (error, status: number) => error.flow('status').some((value) => value === status),
+    },
+  })
 
   type IsAny<T> = 0 extends 1 & T ? true : false
-  type StatusSerializeValue = Parameters<
-    NonNullable<ReturnType<typeof statusExtension.toExtension>['props']>['status']['serialize']
-  >[0]
+  type StatusSerializeValue = Parameters<NonNullable<typeof statusExtension.props>['status']['serialize']>[0]
   expectTypeOf<IsAny<StatusSerializeValue>>().toEqualTypeOf<false>()
 
-  const codeExtension = Error0.extension().extension('prop', 'code', {
-    setter: (value: string) => value,
-    getter: (error) => {
-      for (const value of error.flow('code')) {
-        if (typeof value === 'string') {
-          return value
-        }
-      }
-      return undefined
+  const codeExtension = Error0.extension({
+    props: {
+      code: {
+        setter: (value: string) => value,
+        getter: (error) => {
+          for (const value of error.flow('code')) {
+            if (typeof value === 'string') {
+              return value
+            }
+          }
+          return undefined
+        },
+        serialize: (value, isPublic) => (isPublic ? undefined : value),
+      },
     },
-    serialize: (value, isPublic) => (isPublic ? undefined : value),
   })
 
   it('simple', () => {
@@ -66,19 +73,23 @@ describe('Error0', () => {
     `)
   })
 
-  it('with direct prop extension', () => {
-    const AppError = Error0.extend('prop', 'status', {
-      setter: (value: number) => value,
-      getter: (error: Error0) => {
-        for (const value of error.flow('status')) {
-          const status = Number(value)
-          if (!Number.isNaN(status)) {
-            return status
-          }
-        }
-        return undefined
+  it('with object extension', () => {
+    const AppError = Error0.extend({
+      props: {
+        status: {
+          setter: (value: number) => value,
+          getter: (error: Error0) => {
+            for (const value of error.flow('status')) {
+              const status = Number(value)
+              if (!Number.isNaN(status)) {
+                return status
+              }
+            }
+            return undefined
+          },
+          serialize: (value: number | undefined) => value,
+        },
       },
-      serialize: (value: number | undefined) => value,
     })
     const error = new AppError('test', { status: 400 })
     expect(error).toBeInstanceOf(AppError)
@@ -160,17 +171,21 @@ describe('Error0', () => {
   })
 
   it('serialize uses identity by default and skips undefined extension values', () => {
-    const AppError = Error0.extend(statusExtension).extend('prop', 'code', {
-      setter: (value: string) => value,
-      getter: (error) => {
-        for (const value of error.flow('code')) {
-          if (typeof value === 'string') {
-            return value
-          }
-        }
-        return undefined
+    const AppError = Error0.extend(statusExtension).extend({
+      props: {
+        code: {
+          setter: (value: string) => value,
+          getter: (error) => {
+            for (const value of error.flow('code')) {
+              if (typeof value === 'string') {
+                return value
+              }
+            }
+            return undefined
+          },
+          serialize: () => undefined,
+        },
       },
-      serialize: () => undefined,
     })
     const error = new AppError('test', { status: 401, code: 'secret' })
     const json = AppError.serialize(error) as Record<string, unknown>
@@ -186,10 +201,16 @@ describe('Error0', () => {
   })
 
   it('stack extension can customize serialization', () => {
-    const AppError = Error0.extend('prop', 'stack', {
-      setter: (value: string) => value,
-      getter: (error: Error0) => error.own('stack'),
-      serialize: () => undefined,
+    const AppError = Error0.extend({
+      props: {
+        stack: {
+          setter: (value: string) => value,
+          getter: (error: Error0) => error.own('stack'),
+          serialize: () => undefined,
+        },
+      },
+      computed: {},
+      methods: {},
     })
     const error = new AppError('test')
     const json = AppError.serialize(error) as Record<string, unknown>
@@ -210,13 +231,19 @@ describe('Error0', () => {
   it('computed values serialize and rich methods work in static/instance modes', () => {
     const AppError = Error0.extend(statusExtension)
       .extend(codeExtension)
-      .extend('computed', 'summary', (error: Error0) => {
-        const code = error.flow('code').find((value: unknown) => typeof value === 'string')
-        return `${error.message}:${code ?? 'none'}`
+      .extend({
+        props: {},
+        computed: {
+          summary: (error: Error0) => {
+            const code = error.flow('code').find((value: unknown) => typeof value === 'string')
+            return `${error.message}:${code ?? 'none'}`
+          },
+        },
+        methods: {
+          hasCode: (error: Error0, expectedCode: unknown) =>
+            error.flow('code').some((value: unknown) => value === expectedCode),
+        },
       })
-      .extend('method', 'hasCode', (error: Error0, expectedCode: unknown) =>
-        error.flow('code').some((value: unknown) => value === expectedCode),
-      )
 
     const error = new AppError('test', { status: 400, code: 'E400' })
     expect(error.summary).toBe('test:E400')

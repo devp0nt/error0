@@ -27,23 +27,6 @@ export type ErrorExtension<
   computed?: TComputed
   methods?: TMethods
 }
-type AddPropToExtensionProps<
-  TProps extends ErrorExtensionProps,
-  TKey extends string,
-  TInputValue,
-  TOutputValue,
-> = TProps & Record<TKey, ErrorExtensionPropOptions<TInputValue, TOutputValue>>
-type AddComputedToExtensionComputed<
-  TComputed extends ErrorExtensionComputed,
-  TKey extends string,
-  TOutputValue,
-> = TComputed & Record<TKey, ErrorExtensionCopmputedFn<TOutputValue>>
-type AddMethodToExtensionMethods<
-  TMethods extends ErrorExtensionMethods,
-  TKey extends string,
-  TArgs extends unknown[],
-  TOutputValue,
-> = TMethods & Record<TKey, ErrorExtensionMethodFn<TOutputValue, TArgs>>
 export type ErrorExtensionsMap = {
   props: Record<string, { input: unknown; output: unknown }>
   computed: Record<string, unknown>
@@ -132,36 +115,6 @@ type ExtendErrorExtensionsMap<TMap extends ErrorExtensionsMap, TExtension extend
   computed: TMap['computed'] & ErrorExtensionsMapOfExtension<TExtension>['computed']
   methods: TMap['methods'] & ErrorExtensionsMapOfExtension<TExtension>['methods']
 }
-type ExtendErrorExtensionsMapWithProp<
-  TMap extends ErrorExtensionsMap,
-  TKey extends string,
-  TInputValue,
-  TOutputValue,
-> = ExtendErrorExtensionsMap<
-  TMap,
-  ErrorExtension<Record<TKey, ErrorExtensionPropOptions<TInputValue, TOutputValue>>>
->
-type ExtendErrorExtensionsMapWithComputed<
-  TMap extends ErrorExtensionsMap,
-  TKey extends string,
-  TOutputValue,
-> = ExtendErrorExtensionsMap<
-  TMap,
-  ErrorExtension<Record<never, never>, Record<TKey, ErrorExtensionCopmputedFn<TOutputValue>>>
->
-type ExtendErrorExtensionsMapWithMethod<
-  TMap extends ErrorExtensionsMap,
-  TKey extends string,
-  TArgs extends unknown[],
-  TOutputValue,
-> = ExtendErrorExtensionsMap<
-  TMap,
-  ErrorExtension<
-    Record<never, never>,
-    Record<never, never>,
-    Record<TKey, ErrorExtensionMethodFn<TOutputValue, TArgs>>
-  >
->
 
 type ExtensionsMapOf<TClass> = TClass extends { __extensionsMap?: infer TExtensionsMap }
   ? TExtensionsMap extends ErrorExtensionsMap
@@ -169,115 +122,26 @@ type ExtensionsMapOf<TClass> = TClass extends { __extensionsMap?: infer TExtensi
     : EmptyExtensionsMap
   : EmptyExtensionsMap
 
-type ExtensionOfBuilder<TBuilder> = TBuilder extends ExtensionError0<
-  infer TProps,
-  infer TComputed,
-  infer TMethods
->
-  ? ErrorExtension<TProps, TComputed, TMethods>
-  : never
-
-export class ExtensionError0<
-  TProps extends ErrorExtensionProps = Record<never, never>,
-  TComputed extends ErrorExtensionComputed = Record<never, never>,
-  TMethods extends ErrorExtensionMethods = Record<never, never>,
-> {
-  private readonly _extension: ErrorExtension<
-    ErrorExtensionProps,
-    ErrorExtensionComputed,
-    ErrorExtensionMethods
-  >
-
-  constructor(
-    extension?: ErrorExtension<ErrorExtensionProps, ErrorExtensionComputed, ErrorExtensionMethods>,
-  ) {
-    this._extension = {
-      props: { ...(extension?.props ?? {}) },
-      computed: { ...(extension?.computed ?? {}) },
-      methods: { ...(extension?.methods ?? {}) },
-    }
-  }
-
-  extension<
-    TKey extends string,
-    TInputValue,
-    TOutputValue,
-  >(
-    kind: 'prop',
-    key: TKey,
-    value: ErrorExtensionPropOptions<TInputValue, TOutputValue>,
-  ): ExtensionError0<AddPropToExtensionProps<TProps, TKey, TInputValue, TOutputValue>, TComputed, TMethods>
-  extension<TKey extends string, TOutputValue>(
-    kind: 'computed',
-    key: TKey,
-    value: ErrorExtensionCopmputedFn<TOutputValue>,
-  ): ExtensionError0<TProps, AddComputedToExtensionComputed<TComputed, TKey, TOutputValue>, TMethods>
-  extension<TKey extends string, TArgs extends unknown[], TOutputValue>(
-    kind: 'method',
-    key: TKey,
-    value: ErrorExtensionMethodFn<TOutputValue, TArgs>,
-  ): ExtensionError0<TProps, TComputed, AddMethodToExtensionMethods<TMethods, TKey, TArgs, TOutputValue>>
-  extension(
-    kind: 'prop' | 'computed' | 'method',
-    key: string,
-    value:
-      | ErrorExtensionPropOptions<unknown, unknown>
-      | ErrorExtensionCopmputedFn<unknown>
-      | ErrorExtensionMethodFn<unknown>,
-  ): ExtensionError0<any, any, any> {
-    const nextProps: ErrorExtensionProps = { ...(this._extension.props ?? {}) }
-    const nextComputed: ErrorExtensionComputed = { ...(this._extension.computed ?? {}) }
-    const nextMethods: ErrorExtensionMethods = { ...(this._extension.methods ?? {}) }
-    if (kind === 'prop') {
-      nextProps[key] = value as ErrorExtensionPropOptions<any, any>
-    } else if (kind === 'computed') {
-      nextComputed[key] = value as ErrorExtensionCopmputedFn<any>
-    } else {
-      nextMethods[key] = value as ErrorExtensionMethodFn<any, any[]>
-    }
-    return new ExtensionError0({
-      props: nextProps,
-      computed: nextComputed,
-      methods: nextMethods,
-    })
-  }
-
-  toExtension(): ErrorExtension<TProps, TComputed, TMethods> {
-    return {
-      props: { ...(this._extension.props ?? {}) } as TProps,
-      computed: { ...(this._extension.computed ?? {}) } as TComputed,
-      methods: { ...(this._extension.methods ?? {}) } as TMethods,
-    }
-  }
-}
-
 export type ClassError0<TExtensionsMap extends ErrorExtensionsMap = EmptyExtensionsMap> = {
   new (message: string, input?: ErrorInput<TExtensionsMap>): Error0 & ErrorOutput<TExtensionsMap>
   new (input: { message: string } & ErrorInput<TExtensionsMap>): Error0 & ErrorOutput<TExtensionsMap>
   readonly __extensionsMap?: TExtensionsMap
   from: (error: unknown) => Error0 & ErrorOutput<TExtensionsMap>
   serialize: (error: unknown, isPublic?: boolean) => object
-  extend: {
-    <TBuilder extends ExtensionError0>(
-      extension: TBuilder,
-    ): ClassError0<ExtendErrorExtensionsMap<TExtensionsMap, ExtensionOfBuilder<TBuilder>>>
-    <TKey extends string, TInputValue, TOutputValue>(
-      kind: 'prop',
-      key: TKey,
-      value: ErrorExtensionPropOptions<TInputValue, TOutputValue>,
-    ): ClassError0<ExtendErrorExtensionsMapWithProp<TExtensionsMap, TKey, TInputValue, TOutputValue>>
-    <TKey extends string, TOutputValue>(
-      kind: 'computed',
-      key: TKey,
-      value: ErrorExtensionCopmputedFn<TOutputValue>,
-    ): ClassError0<ExtendErrorExtensionsMapWithComputed<TExtensionsMap, TKey, TOutputValue>>
-    <TKey extends string, TArgs extends unknown[], TOutputValue>(
-      kind: 'method',
-      key: TKey,
-      value: ErrorExtensionMethodFn<TOutputValue, TArgs>,
-    ): ClassError0<ExtendErrorExtensionsMapWithMethod<TExtensionsMap, TKey, TArgs, TOutputValue>>
-  }
-  extension: () => ExtensionError0
+  extend: <
+    TProps extends ErrorExtensionProps,
+    TComputed extends ErrorExtensionComputed,
+    TMethods extends ErrorExtensionMethods,
+  >(
+    extension: ErrorExtension<TProps, TComputed, TMethods>,
+  ) => ClassError0<ExtendErrorExtensionsMap<TExtensionsMap, ErrorExtension<TProps, TComputed, TMethods>>>
+  extension: <
+    TProps extends ErrorExtensionProps,
+    TComputed extends ErrorExtensionComputed,
+    TMethods extends ErrorExtensionMethods,
+  >(
+    extension: ErrorExtension<TProps, TComputed, TMethods>,
+  ) => ErrorExtension<TProps, TComputed, TMethods>
 } & ErrorStaticMethods<TExtensionsMap>
 
 export class Error0 extends Error {
@@ -502,10 +366,23 @@ export class Error0 extends Error {
     )
   }
 
-  private static _extendWithExtension(
+  static extend<
+    TThis extends typeof Error0,
+    TProps extends ErrorExtensionProps,
+    TComputed extends ErrorExtensionComputed,
+    TMethods extends ErrorExtensionMethods,
+  >(
+    this: TThis,
+    extension: {
+      props?: TProps
+      computed?: TComputed
+      methods?: TMethods
+    },
+  ): ClassError0<ExtendErrorExtensionsMap<ExtensionsMapOf<TThis>, ErrorExtension<TProps, TComputed, TMethods>>>
+  static extend(
     this: typeof Error0,
     extension: ErrorExtension<ErrorExtensionProps, ErrorExtensionComputed, ErrorExtensionMethods>,
-  ): ClassError0 {
+  ): any {
     const Base = this as unknown as typeof Error0
     const Error0Extended = class Error0 extends Base {}
     ;(Error0Extended as typeof Error0)._extensions = [...Base._extensions, extension]
@@ -528,64 +405,19 @@ export class Error0 extends Error {
       })
     }
 
-    return Error0Extended as unknown as ClassError0
+    return Error0Extended
   }
 
-  static extend<TThis extends typeof Error0, TBuilder extends ExtensionError0>(
-    this: TThis,
-    extension: TBuilder,
-  ): ClassError0<ExtendErrorExtensionsMap<ExtensionsMapOf<TThis>, ExtensionOfBuilder<TBuilder>>>
-  static extend<TThis extends typeof Error0, TKey extends string, TInputValue, TOutputValue>(
-    this: TThis,
-    kind: 'prop',
-    key: TKey,
-    value: ErrorExtensionPropOptions<TInputValue, TOutputValue>,
-  ): ClassError0<ExtendErrorExtensionsMapWithProp<ExtensionsMapOf<TThis>, TKey, TInputValue, TOutputValue>>
-  static extend<TThis extends typeof Error0, TKey extends string, TOutputValue>(
-    this: TThis,
-    kind: 'computed',
-    key: TKey,
-    value: ErrorExtensionCopmputedFn<TOutputValue>,
-  ): ClassError0<ExtendErrorExtensionsMapWithComputed<ExtensionsMapOf<TThis>, TKey, TOutputValue>>
-  static extend<TThis extends typeof Error0, TKey extends string, TArgs extends unknown[], TOutputValue>(
-    this: TThis,
-    kind: 'method',
-    key: TKey,
-    value: ErrorExtensionMethodFn<TOutputValue, TArgs>,
-  ): ClassError0<ExtendErrorExtensionsMapWithMethod<ExtensionsMapOf<TThis>, TKey, TArgs, TOutputValue>>
-  static extend(
-    this: typeof Error0,
-    first: ExtensionError0 | 'prop' | 'computed' | 'method',
-    key?: string,
-    value?:
-      | ErrorExtensionPropOptions<unknown, unknown>
-      | ErrorExtensionCopmputedFn<unknown>
-      | ErrorExtensionMethodFn<unknown>,
-  ): ClassError0 {
-    if (first instanceof ExtensionError0) {
-      return this._extendWithExtension(first.toExtension() as ErrorExtension<any, any, any>)
-    }
-    if (!key || value === undefined) {
-      throw new Error('Error0.extend(kind, key, value) requires key and value')
-    }
-
-    if (first === 'prop') {
-      return this._extendWithExtension({
-        props: { [key]: value as ErrorExtensionPropOptions<unknown, unknown> },
-      })
-    }
-    if (first === 'computed') {
-      return this._extendWithExtension({
-        computed: { [key]: value as ErrorExtensionCopmputedFn<unknown> },
-      })
-    }
-    return this._extendWithExtension({
-      methods: { [key]: value as ErrorExtensionMethodFn<unknown> },
-    })
-  }
-
-  static extension(): ExtensionError0 {
-    return new ExtensionError0()
+  static extension<
+    TProps extends ErrorExtensionProps,
+    TComputed extends ErrorExtensionComputed,
+    TMethods extends ErrorExtensionMethods,
+  >(extension: {
+    props?: TProps
+    computed?: TComputed
+    methods?: TMethods
+  }): ErrorExtension<TProps, TComputed, TMethods> {
+    return extension as ErrorExtension<TProps, TComputed, TMethods>
   }
 
   static serialize(error: unknown, isPublic = false): object {
