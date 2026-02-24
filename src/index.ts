@@ -1,7 +1,12 @@
+export type ErrorExtensionGetterHelpers = {
+  self: Error0
+  flow: (filter?: true | ((value: unknown) => boolean)) => unknown[]
+  causes: (filter?: (cause: object) => boolean) => object[]
+}
 export type ErrorExtension<TKey extends string, TInputValue, TOutputValue> = {
   key: TKey
   setter: (value: TInputValue) => TOutputValue
-  getter: (error: Error0, flow: unknown[]) => TOutputValue
+  getter: (helpers: ErrorExtensionGetterHelpers) => TOutputValue
 }
 export type ErrorExtensionsMap = Record<string, { input: unknown; output: unknown }>
 export type ExtendErrorExtensionsMap<
@@ -47,10 +52,6 @@ export class Error0 extends Error {
   static readonly __extensionsMap?: EmptyExtensionsMap
   protected static _extensions: Array<ErrorExtension<string, unknown, unknown>> = []
 
-  // get _own(): Record<string, unknown> {
-  //   return { x: 1 }
-  // }
-
   constructor(message: string, input?: ErrorInput<EmptyExtensionsMap>)
   constructor(input: { message: string } & ErrorInput<EmptyExtensionsMap>)
   constructor(
@@ -71,7 +72,12 @@ export class Error0 extends Error {
         ;(this as Record<string, unknown>)[extension.key] = extension.setter(ownValue)
       } else {
         Object.defineProperty(this, extension.key, {
-          get: () => extension.getter(this, ctor.flow(this, extension.key)),
+          get: () =>
+            extension.getter({
+              self: this,
+              flow: (filter) => ctor.flow(this, extension.key, filter),
+              causes: (filter) => ctor.causes(this, filter),
+            }),
           enumerable: true,
           configurable: true,
         })
@@ -118,6 +124,13 @@ export class Error0 extends Error {
     }
 
     return causes
+  }
+
+  static isLikeError0(error: unknown): error is Error0 {
+    return (
+      error instanceof Error0 ||
+      (typeof error === 'object' && error !== null && 'name' in error && error.name === 'Error0')
+    )
   }
 
   static extend<TThis extends typeof Error0, TKey extends string, TInputValue, TOutputValue>(
