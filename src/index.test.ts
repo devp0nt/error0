@@ -304,14 +304,13 @@ describe('Error0', () => {
     expect(error1.code).toBe(undefined)
   })
 
-  it('can create and recongnize variant', () => {
+  it('expected prop can be realized to send or not to send error to your error tracker', () => {
     const AppError = Error0.extend(statusExtension)
-      .extend(codeExtension)
-      .extend('prop', 'userId', {
-        input: (value: string) => value,
+      .extend('prop', 'expected', {
+        input: (value: boolean) => value,
         output: (error) => {
-          for (const value of error.flow('userId')) {
-            if (typeof value === 'string') {
+          for (const value of error.flow('expected')) {
+            if (typeof value === 'boolean') {
               return value
             }
           }
@@ -319,19 +318,58 @@ describe('Error0', () => {
         },
         serialize: (value) => value,
       })
-    const UserError = AppError.variant('UserError', {
-      userId: true,
-    })
-    const error = new UserError('test', { userId: '123', status: 400 })
-    expect(error).toBeInstanceOf(UserError)
-    expect(error).toBeInstanceOf(AppError)
-    expect(error).toBeInstanceOf(Error0)
-    expect(error).toBeInstanceOf(Error)
-    expect(error.userId).toBe('123')
-    expect(error.status).toBe(400)
-    expect(error.code).toBe(undefined)
-    expectTypeOf<typeof error.userId>().toEqualTypeOf<string>()
-    // @ts-expect-error
-    new UserError('test')
+      .extend('method', 'isExpected', (error) => {
+        return error.expected || false
+      })
+    const errorExpected = new AppError('test', { status: 400, expected: true })
+    const errorUnexpected = new AppError('test', { status: 400, expected: false })
+    const usualError = new Error('test')
+    const errorFromUsualError = AppError.from(usualError)
+    const errorWithExpectedErrorAsCause = new AppError('test', { status: 400, cause: errorExpected })
+    const errorWithUnexpectedErrorAsCause = new AppError('test', { status: 400, cause: errorUnexpected })
+    expect(errorExpected.expected).toBe(true)
+    expect(errorUnexpected.expected).toBe(false)
+    expect(AppError.isExpected(usualError)).toBe(false)
+    expect(errorFromUsualError.expected).toBe(undefined)
+    expect(errorFromUsualError.isExpected()).toBe(false)
+    expect(errorWithExpectedErrorAsCause.expected).toBe(true)
+    expect(errorWithExpectedErrorAsCause.isExpected()).toBe(true)
+    expect(errorWithUnexpectedErrorAsCause.expected).toBe(false)
+    expect(errorWithUnexpectedErrorAsCause.isExpected()).toBe(false)
   })
+
+  // we will have no variants
+  // becouse you can thorw any errorm and when you do AppError.from(yourError)
+  // can use refine to assign desired props to error, it is enough for transport
+  // you even can create computed or method to retrieve your error, so no problems with variants
+  // it('can create and recongnize variant', () => {
+  //   const AppError = Error0.extend(statusExtension)
+  //     .extend(codeExtension)
+  //     .extend('prop', 'userId', {
+  //       input: (value: string) => value,
+  //       output: (error) => {
+  //         for (const value of error.flow('userId')) {
+  //           if (typeof value === 'string') {
+  //             return value
+  //           }
+  //         }
+  //         return undefined
+  //       },
+  //       serialize: (value) => value,
+  //     })
+  //   const UserError = AppError.variant('UserError', {
+  //     userId: true,
+  //   })
+  //   const error = new UserError('test', { userId: '123', status: 400 })
+  //   expect(error).toBeInstanceOf(UserError)
+  //   expect(error).toBeInstanceOf(AppError)
+  //   expect(error).toBeInstanceOf(Error0)
+  //   expect(error).toBeInstanceOf(Error)
+  //   expect(error.userId).toBe('123')
+  //   expect(error.status).toBe(400)
+  //   expect(error.code).toBe(undefined)
+  //   expectTypeOf<typeof error.userId>().toEqualTypeOf<string>()
+  //   // @ts-expect-error
+  //   new UserError('test')
+  // })
 })
