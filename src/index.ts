@@ -1,6 +1,6 @@
 export type ErrorExtensionPropOptions<TInputValue, TOutputValue, TError extends Error0 = Error0> = {
-  setter: (value: TInputValue) => TOutputValue
-  getter: (error: TError) => TOutputValue
+  input: (value: TInputValue) => TOutputValue
+  output: (error: TError) => TOutputValue
   serialize: (value: TOutputValue, isPublic: boolean) => unknown
 }
 export type ErrorExtensionCopmputedFn<TOutputValue, TError extends Error0 = Error0> = (error: TError) => TOutputValue
@@ -328,10 +328,10 @@ export class Error0 extends Error {
     for (const [key, prop] of Object.entries(extension.props)) {
       if (key in input) {
         const ownValue = (input as Record<string, unknown>)[key]
-        ;(this as Record<string, unknown>)[key] = prop.setter(ownValue)
+        ;(this as Record<string, unknown>)[key] = prop.input(ownValue)
       } else {
         Object.defineProperty(this, key, {
-          get: () => prop.getter(this),
+          get: () => prop.output(this),
           set: (value) => {
             Object.defineProperty(this, key, {
               value,
@@ -472,7 +472,7 @@ export class Error0 extends Error {
     const temp = new this(message, { cause: errorRecord })
     const extension = this._getResolvedExtension()
     for (const [key, prop] of Object.entries(extension.props)) {
-      const value = key in errorRecord ? prop.setter(errorRecord[key]) : prop.getter(temp)
+      const value = prop.output(temp)
       if (value !== undefined) {
         ;(recreated as unknown as Record<string, unknown>)[key] = value
       }
@@ -611,7 +611,7 @@ export class Error0 extends Error {
 
     const extension = this._getResolvedExtension()
     for (const [key, prop] of Object.entries(extension.props)) {
-      const value = prop.getter(error0)
+      const value = prop.output(error0)
       const jsonValue = prop.serialize(value, isPublic)
       if (jsonValue !== undefined) {
         jsonWithUndefined[key] = jsonValue

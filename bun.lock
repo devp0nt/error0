@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "@devp0nt/error0",
@@ -13,6 +14,7 @@
         "@types/bun": "^1.2.22",
         "@types/lodash": "^4.17.20",
         "@types/node": "^20.0.0",
+        "axios": "^1.12.2",
         "cross-env": "^10.0.0",
         "esbuild-fix-imports-plugin": "^1.0.22",
         "eslint": "^9.36.0",
@@ -28,10 +30,6 @@
         "tsc-watch": "^7.1.1",
         "tsup": "^8.0.0",
         "typescript": "^5.0.0",
-      },
-      "peerDependencies": {
-        "@devp0nt/meta0": "^1.0.0-next.33",
-        "axios": "^1.12.2",
         "zod": "^4.1.9",
       },
     },
@@ -76,10 +74,6 @@
     "@commitlint/top-level": ["@commitlint/top-level@19.8.1", "", { "dependencies": { "find-up": "^7.0.0" } }, "sha512-Ph8IN1IOHPSDhURCSXBz44+CIu+60duFwRsg6HqaISFHQHbmBtxVw4ZrFNIYUzEP7WwrNPxa2/5qJ//NK1FGcw=="],
 
     "@commitlint/types": ["@commitlint/types@19.8.1", "", { "dependencies": { "@types/conventional-commits-parser": "^5.0.0", "chalk": "^5.3.0" } }, "sha512-/yCrWGCoA1SVKOks25EGadP9Pnj0oAIHGpl2wH2M2Y46dPM2ueb8wyCVOD7O3WCTkaJ0IkKvzhl1JY7+uCT2Dw=="],
-
-    "@devp0nt/deepmap0": ["@devp0nt/deepmap0@1.0.0-next.23", "", {}, "sha512-A41AII9Q4Mb9mP8y7UhXx83ysfrDLD4ki+YfTZyC9qIi6BdU9YpHGQ4RUuVHqaH03XSxV2+S1uoRTnreDvc/0A=="],
-
-    "@devp0nt/meta0": ["@devp0nt/meta0@1.0.0-next.33", "", { "dependencies": { "@devp0nt/deepmap0": "^1.0.0-next.22" } }, "sha512-26p9uoQo3Law9d0Q06zyOfGZ0m8zZ/GvmnMFskHBp15ThCTyQUgfa1xjXw/zgTGafIbWCt7vZh9i5mGAUP9/Vg=="],
 
     "@epic-web/invariant": ["@epic-web/invariant@1.0.0", "", {}, "sha512-lrTPqgvfFQtR/eY/qkIzp98OGdNJu0m5ji3q/nJI8v3SXkRKEnWiOxMmbvcSoAIzv/cGiuvRy57k4suKQSAdwA=="],
 

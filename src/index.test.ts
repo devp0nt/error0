@@ -20,8 +20,8 @@ const fixStack = (stack: string | undefined) => {
 describe('Error0', () => {
   const statusExtension = Error0.extension()
     .prop('status', {
-      setter: (value: number) => value,
-      getter: (error) => {
+      input: (value: number) => value,
+      output: (error) => {
         for (const value of error.flow('status')) {
           const status = Number(value)
           if (!Number.isNaN(status)) {
@@ -35,8 +35,8 @@ describe('Error0', () => {
     .method('isStatus', (error, status: number) => error.status === status)
 
   const codeExtension = Error0.extension().extend('prop', 'code', {
-    setter: (value: string) => value,
-    getter: (error) => {
+    input: (value: string) => value,
+    output: (error) => {
       for (const value of error.flow('code')) {
         if (typeof value === 'string') {
           return value
@@ -62,8 +62,8 @@ describe('Error0', () => {
 
   it('with direct prop extension', () => {
     const AppError = Error0.extend('prop', 'status', {
-      setter: (value: number) => value,
-      getter: (error: Error0) => {
+      input: (value: number) => value,
+      output: (error: Error0) => {
         for (const value of error.flow('status')) {
           const status = Number(value)
           if (!Number.isNaN(status)) {
@@ -155,8 +155,8 @@ describe('Error0', () => {
 
   it('serialize uses identity by default and skips undefined extension values', () => {
     const AppError = Error0.extend(statusExtension).extend('prop', 'code', {
-      setter: (value: string) => value,
-      getter: (error) => {
+      input: (value: string) => value,
+      output: (error) => {
         for (const value of error.flow('code')) {
           if (typeof value === 'string') {
             return value
@@ -181,8 +181,14 @@ describe('Error0', () => {
 
   it('stack extension can customize serialization of stack prop', () => {
     const AppError = Error0.extend('prop', 'stack', {
-      setter: (value: string) => value,
-      getter: (error: Error0) => error.own('stack'),
+      input: (value: string) => value,
+      output: (error: Error0) => {
+        const stack = error.own('stack')
+        if (typeof stack === 'string') {
+          return stack
+        }
+        return undefined
+      },
       serialize: () => undefined,
     })
     const error = new AppError('test')

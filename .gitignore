@@ -62,3 +62,6 @@ secrets/
 
 # Force ignored files
 *.ignore*
+
+# deprecated
+deprecated*
