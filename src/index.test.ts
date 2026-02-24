@@ -1,11 +1,12 @@
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, expectTypeOf, it } from 'bun:test'
+import type { ClassError0 } from './index.js'
 import { Error0 } from './index.js'
 
 const fixStack = (stack: string | undefined) => {
   if (!stack) {
     return stack
   }
-  // at <anonymous> (/Users/iserdmi/cc/projects/svagatron/modules/lib/error0.test.ts:103:25)
+  // at <anonymous> (/Users/x/error0.test.ts:103:25)
   // ↓
   // at <anonymous> (...)
   const lines = stack.split('\n')
@@ -28,32 +29,6 @@ describe('Error0', () => {
       "Error0: test
           at <anonymous> (...)"
     `)
-    console.error(error)
-  })
-
-  it('with inline extension', () => {
-    const AppError = Error0.extend(
-      'status',
-      (value: number) => {
-        return value
-      },
-      (_error, flow) => {
-        const status = Number(flow[0])
-        if (isNaN(status)) {
-          return undefined
-        }
-        return status
-      },
-    )
-    const error = new AppError('test', { status: 400 })
-    expect(error.status).toBe(400)
-    expect(error).toMatchInlineSnapshot(`[Error0: test]`)
-    expect(error.stack).toBeDefined()
-    expect(fixStack(error.stack)).toMatchInlineSnapshot(`
-      "Error0: test
-          at <anonymous> (...)"
-    `)
-    console.error(error)
   })
 
   it('with object extension', () => {
@@ -76,7 +51,7 @@ describe('Error0', () => {
       "Error0: test
           at <anonymous> (...)"
     `)
-    console.error(error)
+    expectTypeOf<typeof AppError>().toExtend<ClassError0>()
   })
 
   it('with defined extension', () => {
@@ -100,7 +75,42 @@ describe('Error0', () => {
       "Error0: test
           at <anonymous> (...)"
     `)
-    console.error(error)
+  })
+
+  it('twice extended Error0 extends previous by types', () => {
+    const statusExtension = Error0.extension({
+      key: 'status',
+      setter: (value: number) => value,
+      getter: (_error, flow) => {
+        const status = Number(flow[0])
+        if (isNaN(status)) {
+          return undefined
+        }
+        return status
+      },
+    })
+    const codeExtension = Error0.extension({
+      key: 'code',
+      setter: (value: string) => value,
+      getter: (_error, flow) => {
+        if (typeof flow[0] === 'string') {
+          return flow[0]
+        }
+        return undefined
+      },
+    })
+    const AppError1 = Error0.extend(statusExtension)
+    const AppError2 = AppError1.extend(codeExtension)
+    const error1 = new AppError1('test', { status: 400 })
+    const error2 = new AppError2('test', { status: 400 })
+    expect(error1.status).toBe(400)
+    expect(error2.status).toBe(400)
+    expect(error2.code).toBe('code1')
+
+    expectTypeOf<typeof AppError1>().toExtend<ClassError0>()
+    expectTypeOf<typeof AppError2>().toExtend<ClassError0>()
+    expectTypeOf<typeof AppError2>().toExtend<typeof AppError1>()
+    expectTypeOf<typeof AppError1>().not.toExtend<typeof AppError2>()
   })
 })
 

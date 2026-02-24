@@ -12,12 +12,16 @@ export type ExtendErrorExtensionsMap<
     ? Record<TKey, { input: TInputValue; output: TOutputValue }>
     : unknown)
 export type IsEmptyObject<T> = keyof T extends never ? true : false
+export type ErrorInputBase = {
+  cause?: unknown
+}
 export type ErrorInput<TExtensionsMap extends ErrorExtensionsMap> =
   IsEmptyObject<TExtensionsMap> extends true
-    ? { [key: string]: never }
-    : Partial<{
-        [TKey in keyof TExtensionsMap]: TExtensionsMap[TKey]['input']
-      }>
+    ? ErrorInputBase
+    : ErrorInputBase &
+        Partial<{
+          [TKey in keyof TExtensionsMap]: TExtensionsMap[TKey]['input']
+        }>
 export type ErrorOutput<TExtensionsMap extends ErrorExtensionsMap> = {
   [TKey in keyof TExtensionsMap]: TExtensionsMap[TKey]['output']
 }
@@ -29,20 +33,13 @@ type ExtensionsMapOf<TClass> = TClass extends { __extensionsMap?: infer TExtensi
     : EmptyExtensionsMap
   : EmptyExtensionsMap
 
-type ErrorClass<TExtensionsMap extends ErrorExtensionsMap = EmptyExtensionsMap> = {
+export type ClassError0<TExtensionsMap extends ErrorExtensionsMap = EmptyExtensionsMap> = {
   new (message: string, input?: ErrorInput<TExtensionsMap>): Error0 & ErrorOutput<TExtensionsMap>
   new (input: { message: string } & ErrorInput<TExtensionsMap>): Error0 & ErrorOutput<TExtensionsMap>
   readonly __extensionsMap?: TExtensionsMap
-  extend: {
-    <TKey extends string, TInputValue, TOutputValue>(
-      extension: ErrorExtension<TKey, TInputValue, TOutputValue>,
-    ): ErrorClass<TExtensionsMap & Record<TKey, { input: TInputValue; output: TOutputValue }>>
-    <TKey extends string, TInputValue, TOutputValue>(
-      key: TKey,
-      setter: (value: TInputValue) => TOutputValue,
-      getter: (error: Error0 & Partial<ErrorOutput<TExtensionsMap>>, flow: unknown[]) => TOutputValue,
-    ): ErrorClass<TExtensionsMap & Record<TKey, { input: TInputValue; output: TOutputValue }>>
-  }
+  extend: <TKey extends string, TInputValue, TOutputValue>(
+    extension: ErrorExtension<TKey, TInputValue, TOutputValue>,
+  ) => ClassError0<TExtensionsMap & Record<TKey, { input: TInputValue; output: TOutputValue }>>
   extension: <T extends ErrorExtension<string, unknown, unknown>>(extension: T) => T
 }
 
@@ -50,9 +47,9 @@ export class Error0 extends Error {
   static readonly __extensionsMap?: EmptyExtensionsMap
   protected static _extensions: Array<ErrorExtension<string, unknown, unknown>> = []
 
-  get _own(): Record<string, unknown> {
-    return { x: 1 }
-  }
+  // get _own(): Record<string, unknown> {
+  //   return { x: 1 }
+  // }
 
   constructor(message: string, input?: ErrorInput<EmptyExtensionsMap>)
   constructor(input: { message: string } & ErrorInput<EmptyExtensionsMap>)
@@ -64,65 +61,70 @@ export class Error0 extends Error {
     const [first, second] = args
     const input = typeof first === 'string' ? { message: first, ...(second ?? {}) } : first
 
-    super(input.message)
+    super(input.message, { cause: input.cause })
     this.name = 'Error0'
 
     const ctor = this.constructor as typeof Error0
     for (const extension of ctor._extensions) {
-      const rawValue = (input as Record<string, unknown>)[extension.key]
-      const value =
-        rawValue !== undefined ? extension.setter(rawValue) : extension.getter(this, ctor.flow(this, extension.key))
-      ;(this as Record<string, unknown>)[extension.key] = value
+      if (extension.key in input) {
+        const ownValue = (input as Record<string, unknown>)[extension.key]
+        ;(this as Record<string, unknown>)[extension.key] = extension.setter(ownValue)
+      } else {
+        Object.defineProperty(this, extension.key, {
+          get: () => extension.getter(this, ctor.flow(this, extension.key)),
+          enumerable: true,
+          configurable: true,
+        })
+      }
     }
   }
 
-  static flow(error: Error, key: string): unknown[] {
-    const values: unknown[] = []
+  static flow(error: object, key: string, filter?: true | ((value: unknown) => boolean)): unknown[] {
+    const values = this.causes(error).map((cause) => {
+      const causeRecord = cause as Record<string, unknown>
+      if (isSelfProperty(causeRecord, key)) {
+        return causeRecord[key]
+      }
+      return undefined
+    })
+
+    if (filter === undefined) {
+      return values
+    }
+    if (filter === true) {
+      return values.filter((value) => value !== undefined)
+    }
+    return values.filter((value) => filter(value))
+  }
+
+  static causes(error: object, filter?: (cause: object) => boolean): object[] {
+    const causes: object[] = []
     let current: unknown = error
-    const maxDepth = 50
+    const maxDepth = 99
+    const seen = new Set<unknown>()
 
     for (let depth = 0; depth < maxDepth; depth += 1) {
-      if (!(current instanceof Error)) {
+      if (!current || typeof current !== 'object') {
         break
       }
-      const currentRecord = current as unknown as Record<string, unknown>
-      if (key in currentRecord) {
-        const value = currentRecord[key]
-        if (value !== undefined) {
-          values.push(value)
-        }
+      if (seen.has(current)) {
+        break
+      }
+      seen.add(current)
+      if (!filter || filter(current)) {
+        causes.push(current)
       }
       current = (current as { cause?: unknown }).cause
     }
 
-    return values
+    return causes
   }
 
   static extend<TThis extends typeof Error0, TKey extends string, TInputValue, TOutputValue>(
     this: TThis,
     extension: ErrorExtension<TKey, TInputValue, TOutputValue>,
-  ): ErrorClass<ExtensionsMapOf<TThis> & Record<TKey, { input: TInputValue; output: TOutputValue }>>
-  static extend<TThis extends typeof Error0, TKey extends string, TInputValue, TOutputValue>(
-    this: TThis,
-    key: TKey,
-    setter: (value: TInputValue) => TOutputValue,
-    getter: (error: Error0, flow: unknown[]) => TOutputValue,
-  ): ErrorClass<ExtensionsMapOf<TThis> & Record<TKey, { input: TInputValue; output: TOutputValue }>>
-  static extend(this: typeof Error0, ...args: unknown[]): any {
-    const [extensionOrKey, setter, getter] = args as [
-      ErrorExtension<string, unknown, unknown> | string,
-      ((value: unknown) => unknown) | undefined,
-      ((error: Error0, flow: unknown[]) => unknown) | undefined,
-    ]
-    const extension =
-      typeof extensionOrKey === 'string'
-        ? ({
-            key: extensionOrKey,
-            setter: setter as (value: unknown) => unknown,
-            getter: getter as (error: Error0, flow: unknown[]) => unknown,
-          } as ErrorExtension<string, unknown, unknown>)
-        : extensionOrKey
-
+  ): ClassError0<ExtensionsMapOf<TThis> & Record<TKey, { input: TInputValue; output: TOutputValue }>>
+  static extend(this: typeof Error0, extension: ErrorExtension<string, unknown, unknown>): any {
     const Base = this as unknown as typeof Error0
     const Error0Extended = class Error0 extends Base {}
     ;(Error0Extended as typeof Error0)._extensions = [...Base._extensions, extension]
@@ -134,6 +136,19 @@ export class Error0 extends Error {
   ): ErrorExtension<TKey, TInputValue, TOutputValue> {
     return extension
   }
+}
+
+const isSelfProperty = (object: object, key: string): boolean => {
+  const d = Object.getOwnPropertyDescriptor(object, key)
+  if (!d) return false
+  if (typeof d.get === 'function' || typeof d.set === 'function') {
+    if ('name' in object && object.name === 'Error0') {
+      return false
+    } else {
+      return true
+    }
+  }
+  return true
 }
 
 // example
