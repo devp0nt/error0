@@ -633,6 +633,17 @@ describe('Error0', () => {
     `)
   })
 
+  it('Error0 assignable to LikeError0', () => {
+    type LikeError0 = {
+      from: (error: unknown) => Error
+      serialize: (error: Error) => Record<string, unknown>
+    }
+    expectTypeOf<typeof Error0>().toExtend<LikeError0>()
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const AppError = Error0.use(statusPlugin)
+    expectTypeOf<typeof AppError>().toExtend<LikeError0>()
+  })
+
   // we will have no variants
   // becouse you can thorw any errorm and when you do AppError.from(yourError)
   // can use adapt to assign desired props to error, it is enough for transport
