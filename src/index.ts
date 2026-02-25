@@ -383,24 +383,24 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
     error: object,
     key: TKey,
   ) => Array<ErrorOwnProps<TPluginsMap>[TKey]>
-  prop: <
-    TKey extends string,
-    TInputValue = undefined,
-    TOutputValue = unknown,
-    TResolveValue extends TOutputValue | undefined = TOutputValue | undefined,
-  >(
-    key: TKey,
-    value: ErrorPluginPropOptions<TInputValue, TOutputValue, ErrorInstanceOfMap<TPluginsMap>, TResolveValue>,
-  ) => ClassError0<ExtendErrorPluginsMapWithProp<TPluginsMap, TKey, TInputValue, TOutputValue, TResolveValue>>
-  method: <TKey extends string, TArgs extends unknown[], TOutputValue>(
-    key: TKey,
-    value: ErrorPluginMethodFn<TOutputValue, TArgs, ErrorInstanceOfMap<TPluginsMap>>,
-  ) => ClassError0<ExtendErrorPluginsMapWithMethod<TPluginsMap, TKey, TArgs, TOutputValue>>
-  adapt: (
-    value: ErrorPluginAdaptFn<ErrorInstanceOfMap<TPluginsMap>, ErrorResolvedProps<TPluginsMap>>,
-  ) => ClassError0<TPluginsMap>
-  stack: (value: ErrorPluginStack<ErrorInstanceOfMap<TPluginsMap>>) => ClassError0<TPluginsMap>
-  cause: (value: ErrorPluginCause<ErrorInstanceOfMap<TPluginsMap>>) => ClassError0<TPluginsMap>
+  // prop: <
+  //   TKey extends string,
+  //   TInputValue = undefined,
+  //   TOutputValue = unknown,
+  //   TResolveValue extends TOutputValue | undefined = TOutputValue | undefined,
+  // >(
+  //   key: TKey,
+  //   value: ErrorPluginPropOptions<TInputValue, TOutputValue, ErrorInstanceOfMap<TPluginsMap>, TResolveValue>,
+  // ) => ClassError0<ExtendErrorPluginsMapWithProp<TPluginsMap, TKey, TInputValue, TOutputValue, TResolveValue>>
+  // method: <TKey extends string, TArgs extends unknown[], TOutputValue>(
+  //   key: TKey,
+  //   value: ErrorPluginMethodFn<TOutputValue, TArgs, ErrorInstanceOfMap<TPluginsMap>>,
+  // ) => ClassError0<ExtendErrorPluginsMapWithMethod<TPluginsMap, TKey, TArgs, TOutputValue>>
+  // adapt: (
+  //   value: ErrorPluginAdaptFn<ErrorInstanceOfMap<TPluginsMap>, ErrorResolvedProps<TPluginsMap>>,
+  // ) => ClassError0<TPluginsMap>
+  // stack: (value: ErrorPluginStack<ErrorInstanceOfMap<TPluginsMap>>) => ClassError0<TPluginsMap>
+  // cause: (value: ErrorPluginCause<ErrorInstanceOfMap<TPluginsMap>>) => ClassError0<TPluginsMap>
   use: {
     <TBuilder extends PluginError0>(
       plugin: TBuilder,
@@ -796,48 +796,48 @@ export class Error0 extends Error {
     }
   }
 
-  static prop<
-    TThis extends typeof Error0,
-    TKey extends string,
-    TInputValue = undefined,
-    TOutputValue = unknown,
-    TResolveValue extends TOutputValue | undefined = TOutputValue | undefined,
-  >(
-    this: TThis,
-    key: TKey,
-    value: ErrorPluginPropOptions<TInputValue, TOutputValue, ErrorInstanceOfMap<PluginsMapOf<TThis>>, TResolveValue>,
-  ): ClassError0<ExtendErrorPluginsMapWithProp<PluginsMapOf<TThis>, TKey, TInputValue, TOutputValue, TResolveValue>> {
-    return this.use('prop', key, value)
-  }
+  // static prop<
+  //   TThis extends typeof Error0,
+  //   TKey extends string,
+  //   TInputValue = undefined,
+  //   TOutputValue = unknown,
+  //   TResolveValue extends TOutputValue | undefined = TOutputValue | undefined,
+  // >(
+  //   this: TThis,
+  //   key: TKey,
+  //   value: ErrorPluginPropOptions<TInputValue, TOutputValue, ErrorInstanceOfMap<PluginsMapOf<TThis>>, TResolveValue>,
+  // ): ClassError0<ExtendErrorPluginsMapWithProp<PluginsMapOf<TThis>, TKey, TInputValue, TOutputValue, TResolveValue>> {
+  //   return this.use('prop', key, value)
+  // }
 
-  static method<TThis extends typeof Error0, TKey extends string, TArgs extends unknown[], TOutputValue>(
-    this: TThis,
-    key: TKey,
-    value: ErrorPluginMethodFn<TOutputValue, TArgs, ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
-  ): ClassError0<ExtendErrorPluginsMapWithMethod<PluginsMapOf<TThis>, TKey, TArgs, TOutputValue>> {
-    return this.use('method', key, value)
-  }
+  // static method<TThis extends typeof Error0, TKey extends string, TArgs extends unknown[], TOutputValue>(
+  //   this: TThis,
+  //   key: TKey,
+  //   value: ErrorPluginMethodFn<TOutputValue, TArgs, ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
+  // ): ClassError0<ExtendErrorPluginsMapWithMethod<PluginsMapOf<TThis>, TKey, TArgs, TOutputValue>> {
+  //   return this.use('method', key, value)
+  // }
 
-  static adapt<TThis extends typeof Error0>(
-    this: TThis,
-    value: ErrorPluginAdaptFn<ErrorInstanceOfMap<PluginsMapOf<TThis>>, ErrorResolvedProps<PluginsMapOf<TThis>>>,
-  ): ClassError0<PluginsMapOf<TThis>> {
-    return this.use('adapt', value)
-  }
+  // static adapt<TThis extends typeof Error0>(
+  //   this: TThis,
+  //   value: ErrorPluginAdaptFn<ErrorInstanceOfMap<PluginsMapOf<TThis>>, ErrorResolvedProps<PluginsMapOf<TThis>>>,
+  // ): ClassError0<PluginsMapOf<TThis>> {
+  //   return this.use('adapt', value)
+  // }
 
-  static stack<TThis extends typeof Error0>(
-    this: TThis,
-    value: ErrorPluginStack<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
-  ): ClassError0<PluginsMapOf<TThis>> {
-    return this.use('stack', value)
-  }
+  // static stack<TThis extends typeof Error0>(
+  //   this: TThis,
+  //   value: ErrorPluginStack<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
+  // ): ClassError0<PluginsMapOf<TThis>> {
+  //   return this.use('stack', value)
+  // }
 
-  static cause<TThis extends typeof Error0>(
-    this: TThis,
-    value: ErrorPluginCause<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
-  ): ClassError0<PluginsMapOf<TThis>> {
-    return this.use('cause', value)
-  }
+  // static cause<TThis extends typeof Error0>(
+  //   this: TThis,
+  //   value: ErrorPluginCause<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
+  // ): ClassError0<PluginsMapOf<TThis>> {
+  //   return this.use('cause', value)
+  // }
 
   static use<TThis extends typeof Error0, TBuilder extends PluginError0>(
     this: TThis,

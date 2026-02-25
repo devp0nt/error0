@@ -74,7 +74,7 @@ describe('Error0', () => {
   })
 
   it('class helpers prop/method/adapt mirror use API', () => {
-    const AppError = Error0.prop('status', {
+    const AppError = Error0.use('prop', 'status', {
       init: (value: number) => value,
       resolve: ({ own, flow }) => {
         return typeof own === 'number' ? own : undefined
@@ -82,8 +82,8 @@ describe('Error0', () => {
       serialize: ({ value }) => value,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
     })
-      .method('isStatus', (error, expectedStatus: number) => error.status === expectedStatus)
-      .adapt((error) => {
+      .use('method', 'isStatus', (error, expectedStatus: number) => error.status === expectedStatus)
+      .use('adapt', (error) => {
         if (error.cause instanceof Error && error.status === undefined) {
           return { status: 500 }
         }
@@ -165,7 +165,7 @@ describe('Error0', () => {
   })
 
   it('serialize uses identity by default and skips undefined plugin values', () => {
-    const AppError = Error0.use(statusPlugin).prop('code', {
+    const AppError = Error0.use(statusPlugin).use('prop', 'code', {
       init: (input: string) => input,
       resolve: ({ flow }) => flow.find(Boolean),
       serialize: () => undefined,
@@ -185,7 +185,7 @@ describe('Error0', () => {
   })
 
   it('stack plugin can customize stack serialization without defining prop plugin', () => {
-    const AppError = Error0.stack(({ value }) => (value ? `custom:${value}` : undefined))
+    const AppError = Error0.use('stack', ({ value }) => (value ? `custom:${value}` : undefined))
     const error = new AppError('test')
     const json = AppError.serialize(error)
     expect(typeof json.stack).toBe('string')
@@ -193,14 +193,14 @@ describe('Error0', () => {
   })
 
   it('stack plugin serialize true keeps default stack', () => {
-    const AppError = Error0.stack(true)
+    const AppError = Error0.use('stack', true)
     const error = new AppError('test')
     const json = AppError.serialize(error)
     expect(json.stack).toBe(error.stack)
   })
 
   it('stack plugin serialize false disables stack serialization', () => {
-    const AppError = Error0.stack(false)
+    const AppError = Error0.use('stack', false)
     const error = new AppError('test')
     const json = AppError.serialize(error)
     expect('stack' in json).toBe(false)
@@ -208,7 +208,7 @@ describe('Error0', () => {
 
   it('prop("stack") throws and suggests using stack plugin', () => {
     expect(() =>
-      Error0.prop('stack', {
+      Error0.use('prop', 'stack', {
         init: (input: string) => input,
         resolve: ({ own }) => (typeof own === 'string' ? own : undefined),
         serialize: ({ value }) => value,
@@ -250,7 +250,7 @@ describe('Error0', () => {
   })
 
   it('cause plugin true serializes and deserializes nested Error0 causes', () => {
-    const AppError = Error0.use(statusPlugin).use(codePlugin).cause(true)
+    const AppError = Error0.use(statusPlugin).use(codePlugin).use('cause', true)
     const causeError = new AppError('cause', { status: 409, code: 'NOT_FOUND' })
     const error = new AppError('root', { status: 500, cause: causeError })
 
@@ -277,7 +277,7 @@ describe('Error0', () => {
   })
 
   it('prop init without input arg infers undefined-only constructor input', () => {
-    const AppError = Error0.prop('computed', {
+    const AppError = Error0.use('prop', 'computed', {
       init: () => undefined as number | undefined,
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number'),
       serialize: ({ value }) => value,
@@ -294,7 +294,7 @@ describe('Error0', () => {
   })
 
   it('prop without init omits constructor input and infers resolve output', () => {
-    const AppError = Error0.prop('statusCode', {
+    const AppError = Error0.use('prop', 'statusCode', {
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number'),
       serialize: ({ value }) => value,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
@@ -310,7 +310,7 @@ describe('Error0', () => {
   })
 
   it('prop output type is inferred from resolve type', () => {
-    const AppError = Error0.prop('x', {
+    const AppError = Error0.use('prop', 'x', {
       init: (input: number) => input,
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number') || 500,
       serialize: ({ value }) => value,
@@ -323,7 +323,7 @@ describe('Error0', () => {
     expectTypeOf(AppError.own(error, 'x')).toEqualTypeOf<number | undefined>()
     expectTypeOf(AppError.flow(error, 'x')).toEqualTypeOf<Array<number | undefined>>()
 
-    Error0.prop('x', {
+    Error0.plugin().prop('x', {
       init: (input: number) => input,
       // @ts-expect-error - resolve type extends init type
       resolve: ({ flow }) => 'string',
@@ -333,7 +333,7 @@ describe('Error0', () => {
   })
 
   it('own/flow are typed by output type, not resolve type', () => {
-    const AppError = Error0.prop('code', {
+    const AppError = Error0.use('prop', 'code', {
       init: (input: number | 'fallback') => input,
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number') ?? 500,
       serialize: ({ value }) => value,
@@ -354,12 +354,12 @@ describe('Error0', () => {
   it('own/flow runtime behavior across causes', () => {
     type Code = 'A' | 'B'
     const isCode = (item: unknown): item is Code => item === 'A' || item === 'B'
-    const AppError = Error0.prop('status', {
+    const AppError = Error0.use('prop', 'status', {
       init: (input: number) => input,
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number'),
       serialize: ({ value }) => value,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
-    }).prop('code', {
+    }).use('prop', 'code', {
       init: (input: Code) => input,
       resolve: ({ flow }) => flow.find(isCode),
       serialize: ({ value }) => value,
@@ -381,12 +381,12 @@ describe('Error0', () => {
   it('own/flow have strong types for static and instance methods', () => {
     type Code = 'A' | 'B'
     const isCode = (item: unknown): item is Code => item === 'A' || item === 'B'
-    const AppError = Error0.prop('status', {
+    const AppError = Error0.use('prop', 'status', {
       init: (input: number) => input,
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number'),
       serialize: ({ value }) => value,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
-    }).prop('code', {
+    }).use('prop', 'code', {
       init: (input: Code) => input,
       resolve: ({ flow }) => flow.find(isCode),
       serialize: ({ value }) => value,
@@ -408,19 +408,19 @@ describe('Error0', () => {
   it('resolve returns plain resolved props object without methods', () => {
     type Code = 'A' | 'B'
     const isCode = (item: unknown): item is Code => item === 'A' || item === 'B'
-    const AppError = Error0.prop('status', {
+    const AppError = Error0.use('prop', 'status', {
       init: (input: number) => input,
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number') ?? 500,
       serialize: ({ value }) => value,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
     })
-      .prop('code', {
+      .use('prop', 'code', {
         init: (input: Code) => input,
         resolve: ({ flow }) => flow.find(isCode),
         serialize: ({ value }) => value,
         deserialize: ({ value }) => (value === 'A' || value === 'B' ? value : undefined),
       })
-      .method('isStatus', (error, status: number) => error.status === status)
+      .use('method', 'isStatus', (error, status: number) => error.status === status)
 
     const root = new AppError('root', { status: 400, code: 'A' })
     const leaf = new AppError('leaf', { cause: root })
@@ -436,7 +436,7 @@ describe('Error0', () => {
   })
 
   it('prop resolved type can be not undefined with init not provided', () => {
-    const AppError = Error0.prop('x', {
+    const AppError = Error0.use('prop', 'x', {
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number') || 500,
       serialize: ({ value }) => value,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
@@ -446,7 +446,7 @@ describe('Error0', () => {
     expect(error.x).toBe(500)
     expectTypeOf<typeof error.x>().toEqualTypeOf<number>()
 
-    Error0.prop('x', {
+    Error0.plugin().prop('x', {
       init: (input: number) => input,
       // @ts-expect-error - resolve type extends init type
       resolve: ({ flow }) => 'string',
@@ -456,7 +456,7 @@ describe('Error0', () => {
   })
 
   it('serialize/deserialize can be set to false to disable them', () => {
-    const AppError = Error0.prop('status', {
+    const AppError = Error0.use('prop', 'status', {
       init: (input: number) => input,
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number'),
       serialize: false,
@@ -516,7 +516,7 @@ describe('Error0', () => {
     assert.ok(parsedError)
     const AppError = Error0.use(statusPlugin)
       .use(codePlugin)
-      .adapt((error) => {
+      .use('adapt', (error) => {
         if (error.cause instanceof ZodError) {
           error.message = `Validation Error: ${error.message}`
           return {
@@ -538,13 +538,13 @@ describe('Error0', () => {
 
   it('expected prop can be realized to send or not to send error to your error tracker', () => {
     const AppError = Error0.use(statusPlugin)
-      .prop('expected', {
+      .use('prop', 'expected', {
         init: (input: boolean) => input,
         resolve: ({ flow }) => flow.find((value) => typeof value === 'boolean'),
         serialize: ({ value }) => value,
         deserialize: ({ value }) => (typeof value === 'boolean' ? value : undefined),
       })
-      .method('isExpected', (error) => {
+      .use('method', 'isExpected', (error) => {
         return error.expected ?? false
       })
     const errorExpected = new AppError('test', { status: 400, expected: true })
@@ -567,7 +567,7 @@ describe('Error0', () => {
   it('messages can be combined on serialization', () => {
     const AppError = Error0.use(statusPlugin)
       .use(codePlugin)
-      .prop('message', {
+      .use('prop', 'message', {
         resolve: ({ own }) => own as string,
         serialize: ({ value, error }) => error.flow('message').join(': '),
         deserialize: ({ value }) => (typeof value === 'string' ? value : undefined),
@@ -584,7 +584,7 @@ describe('Error0', () => {
   it('stack plugin can merge stack across causes in one serialized value', () => {
     const AppError = Error0.use(statusPlugin)
       .use(codePlugin)
-      .stack(({ error }) =>
+      .use('stack', ({ error }) =>
         error
           .causes()
           .map((cause) => {
@@ -613,7 +613,7 @@ describe('Error0', () => {
   })
 
   it('stack plugin can merge stack across causes in one serialized value by helper "merge"', () => {
-    const AppError = Error0.use(statusPlugin).use(codePlugin).stack('merge')
+    const AppError = Error0.use(statusPlugin).use(codePlugin).use('stack', 'merge')
     const error1 = new AppError('test1', { status: 400, code: 'NOT_FOUND' })
     const error2 = new AppError('test2', { status: 401, cause: error1 })
     const mergedStack1 = error1.serialize().stack as string
