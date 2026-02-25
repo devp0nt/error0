@@ -184,16 +184,36 @@ describe('Error0', () => {
     expect(json.stack).toBe(error.stack)
   })
 
-  it('stack plugin can customize serialization of stack prop', () => {
-    const AppError = Error0.prop('stack', {
-      init: (input: string) => input,
-      resolve: ({ own }) => (typeof own === 'string' ? own : undefined),
-      serialize: ({ value }) => undefined,
-      deserialize: ({ value }) => (typeof value === 'string' ? value : undefined),
+  it('stack plugin can customize stack serialization without defining prop plugin', () => {
+    const AppError = Error0.stack({
+      serialize: ({ value }) => (value ? `custom:${value}` : undefined),
     })
     const error = new AppError('test')
     const json = AppError.serialize(error)
-    expect('stack' in json).toBe(false)
+    expect(typeof json.stack).toBe('string')
+    expect((json.stack as string).startsWith('custom:')).toBe(true)
+  })
+
+  it('prop("stack") throws and suggests using stack plugin', () => {
+    expect(() =>
+      Error0.prop('stack', {
+        init: (input: string) => input,
+        resolve: ({ own }) => (typeof own === 'string' ? own : undefined),
+        serialize: ({ value }) => value,
+        deserialize: ({ value }) => (typeof value === 'string' ? value : undefined),
+      }),
+    ).toThrow('reserved prop key')
+  })
+
+  it('plugin builder also rejects prop("stack") as reserved key', () => {
+    expect(() =>
+      Error0.plugin().prop('stack', {
+        init: (input: string) => input,
+        resolve: ({ own }) => (typeof own === 'string' ? own : undefined),
+        serialize: ({ value }) => value,
+        deserialize: ({ value }) => (typeof value === 'string' ? value : undefined),
+      }),
+    ).toThrow('reserved prop key')
   })
 
   it('.serialize() -> .from() roundtrip keeps plugin values', () => {
@@ -531,29 +551,36 @@ describe('Error0', () => {
     expect(error2.serialize().message).toEqual('test2: test1')
   })
 
-  it.only('Error0.mergeStacks(causes: unknown[]) really merge stacks nicely in one long stack', () => {
+  it('stack plugin can merge stack across causes in one serialized value', () => {
     const AppError = Error0.use(statusPlugin)
       .use(codePlugin)
       .stack({
-        serialize: ({ value, error }) =>
+        serialize: ({ error }) =>
           error
             .causes()
             .map((cause) => {
-              // const stack = (cause as any).stack
-              // console.log(123, cause)
-              const stack = Error0.own(cause, 'stack' as never) as string | undefined
-              console.log(444, stack)
-              return stack
+              return cause instanceof Error ? cause.stack : undefined
             })
+            .filter((value): value is string => typeof value === 'string')
             .join('\n'),
       })
     const error1 = new AppError('test1', { status: 400, code: 'NOT_FOUND' })
     const error2 = new AppError('test2', { status: 401, cause: error1 })
     const mergedStack1 = error1.serialize().stack as string
     const mergedStack2 = error2.serialize().stack as string
-    console.log(error1)
-    expect(mergedStack1).toMatchInlineSnapshot()
-    expect(mergedStack2).toMatchInlineSnapshot()
+    expect(mergedStack1).toContain('Error0: test1')
+    expect(mergedStack2).toContain('Error0: test2')
+    expect(mergedStack2).toContain('Error0: test1')
+    expect(fixStack(mergedStack1)).toMatchInlineSnapshot(`
+      "Error0: test1
+          at <anonymous> (...)"
+    `)
+    expect(fixStack(mergedStack2)).toMatchInlineSnapshot(`
+      "Error0: test2
+          at <anonymous> (...)
+      Error0: test1
+          at <anonymous> (...)"
+    `)
   })
 
   // we will have no variants

@@ -59,6 +59,16 @@ export type ErrorPluginAdaptFn<
   TError extends Error0 = Error0,
   TOutputProps extends Record<string, unknown> = Record<never, never>,
 > = ((error: TError) => void) | ((error: TError) => ErrorPluginAdaptResult<TOutputProps>)
+export type ErrorPluginStackSerialize<TError extends Error0> =
+  | ((options: { value: string | undefined; error: TError; isPublic: boolean }) => unknown)
+  | false
+export type ErrorPluginStackDeserialize =
+  | ((options: { value: unknown; serialized: Record<string, unknown> }) => string | undefined)
+  | false
+export type ErrorPluginStackOptions<TError extends Error0 = Error0> = {
+  serialize?: ErrorPluginStackSerialize<TError>
+  deserialize?: ErrorPluginStackDeserialize
+}
 type ErrorMethodRecord = {
   args: unknown[]
   output: unknown
@@ -74,6 +84,7 @@ export type ErrorPlugin<
   props?: TProps
   methods?: TMethods
   adapt?: Array<ErrorPluginAdaptFn<Error0, PluginOutputProps<TProps>>>
+  stack?: ErrorPluginStackOptions
 }
 type AddPropToPluginProps<
   TProps extends ErrorPluginProps,
@@ -156,7 +167,9 @@ type ErrorPluginResolved = {
   props: Record<string, ErrorPluginPropOptions<unknown>>
   methods: Record<string, ErrorPluginMethodFn<unknown>>
   adapt: Array<ErrorPluginAdaptFn<Error0, Record<string, unknown>>>
+  stack?: ErrorPluginStackOptions
 }
+const RESERVED_STACK_PROP_ERROR = 'Error0: "stack" is a reserved prop key. Use .stack(...) plugin API instead'
 
 type PluginPropsMapOf<TPlugin extends ErrorPlugin> = {
   [TKey in keyof NonNullable<TPlugin['props']>]: NonNullable<TPlugin['props']>[TKey] extends ErrorPluginPropOptions<
@@ -246,6 +259,7 @@ export class PluginError0<
       props: { ...(plugin?.props ?? {}) },
       methods: { ...(plugin?.methods ?? {}) },
       adapt: [...(plugin?.adapt ?? [])],
+      stack: plugin?.stack,
     }
   }
 
@@ -274,6 +288,10 @@ export class PluginError0<
     return this.use('adapt', value)
   }
 
+  stack(value: ErrorPluginStackOptions<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods> {
+    return this.use('stack', value)
+  }
+
   use<
     TKey extends string,
     TInputValue = undefined,
@@ -293,16 +311,21 @@ export class PluginError0<
     kind: 'adapt',
     value: ErrorPluginAdaptFn<BuilderError0<TProps, TMethods>, PluginOutputProps<TProps>>,
   ): PluginError0<TProps, TMethods>
+  use(kind: 'stack', value: ErrorPluginStackOptions<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods>
   use(
-    kind: 'prop' | 'method' | 'adapt',
-    keyOrValue: string | ErrorPluginAdaptFn<any, any>,
+    kind: 'prop' | 'method' | 'adapt' | 'stack',
+    keyOrValue: string | ErrorPluginAdaptFn<any, any> | ErrorPluginStackOptions<any>,
     value?: ErrorPluginPropOptions<unknown, unknown, any> | ErrorPluginMethodFn<unknown, unknown[], any>,
   ): PluginError0<any, any> {
     const nextProps: ErrorPluginProps = { ...(this._plugin.props ?? {}) }
     const nextMethods: ErrorPluginMethods = { ...(this._plugin.methods ?? {}) }
     const nextAdapt: Array<ErrorPluginAdaptFn<Error0, Record<string, unknown>>> = [...(this._plugin.adapt ?? [])]
+    let nextStack: ErrorPluginStackOptions | undefined = this._plugin.stack
     if (kind === 'prop') {
       const key = keyOrValue as string
+      if (key === 'stack') {
+        throw new Error(RESERVED_STACK_PROP_ERROR)
+      }
       if (value === undefined) {
         throw new Error('PluginError0.use("prop", key, value) requires value')
       }
@@ -313,13 +336,16 @@ export class PluginError0<
         throw new Error('PluginError0.use("method", key, value) requires value')
       }
       nextMethods[key] = value as ErrorPluginMethodFn<any, any[]>
-    } else {
+    } else if (kind === 'adapt') {
       nextAdapt.push(keyOrValue as ErrorPluginAdaptFn<Error0, Record<string, unknown>>)
+    } else {
+      nextStack = { ...(keyOrValue as ErrorPluginStackOptions) }
     }
     return new PluginError0({
       props: nextProps,
       methods: nextMethods,
       adapt: nextAdapt,
+      stack: nextStack,
     })
   }
 }
@@ -362,6 +388,7 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
   adapt: (
     value: ErrorPluginAdaptFn<ErrorInstanceOfMap<TPluginsMap>, ErrorResolvedProps<TPluginsMap>>,
   ) => ClassError0<TPluginsMap>
+  stack: (value: ErrorPluginStackOptions<ErrorInstanceOfMap<TPluginsMap>>) => ClassError0<TPluginsMap>
   use: {
     <TBuilder extends PluginError0>(
       plugin: TBuilder,
@@ -385,6 +412,7 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
       kind: 'adapt',
       value: ErrorPluginAdaptFn<ErrorInstanceOfMap<TPluginsMap>, ErrorResolvedProps<TPluginsMap>>,
     ): ClassError0<TPluginsMap>
+    (kind: 'stack', value: ErrorPluginStackOptions<ErrorInstanceOfMap<TPluginsMap>>): ClassError0<TPluginsMap>
   }
   plugin: () => PluginError0
 } & ErrorStaticMethods<TPluginsMap>
@@ -397,6 +425,7 @@ export class Error0 extends Error {
     props: {},
     methods: {},
     adapt: [],
+    stack: undefined,
   }
 
   private static _getResolvedPlugin(this: typeof Error0): ErrorPluginResolved {
@@ -406,9 +435,15 @@ export class Error0 extends Error {
       adapt: [],
     }
     for (const plugin of this._plugins) {
+      if (plugin.props && 'stack' in plugin.props) {
+        throw new Error(RESERVED_STACK_PROP_ERROR)
+      }
       Object.assign(resolved.props, plugin.props ?? this._emptyPlugin.props)
       Object.assign(resolved.methods, plugin.methods ?? this._emptyPlugin.methods)
       resolved.adapt.push(...(plugin.adapt ?? this._emptyPlugin.adapt))
+      if (plugin.stack) {
+        resolved.stack = plugin.stack
+      }
     }
     return resolved
   }
@@ -430,6 +465,9 @@ export class Error0 extends Error {
     const plugin = ctor._getResolvedPlugin()
 
     for (const [key, prop] of Object.entries(plugin.props)) {
+      if (key === 'stack') {
+        continue
+      }
       if (key in input) {
         const ownValue = (input as Record<string, unknown>)[key]
         if (typeof prop.init === 'function') {
@@ -457,7 +495,6 @@ export class Error0 extends Error {
 
   private static readonly isSelfProperty = (object: object, key: string): boolean => {
     const d = Object.getOwnPropertyDescriptor(object, key)
-    console.log('SELF PROPERTY', key, d)
     if (!d) return false
     if (typeof d.get === 'function' || typeof d.set === 'function') {
       if ('name' in object && object.name === 'Error0') {
@@ -472,7 +509,6 @@ export class Error0 extends Error {
     if (this.isSelfProperty(error, key)) {
       return (error as Record<string, unknown>)[key]
     }
-    console.log('NOt SELF PROPERTY', key)
     return undefined
   }
   private static _flowByKey(error: object, key: string): unknown[] {
@@ -555,7 +591,6 @@ export class Error0 extends Error {
         //   },
         // )
         // resolved[key] = prop.resolve(options as never)
-        console.log(777, key, error0.own(key as never))
         resolved[key] = prop.resolve({ own: error0.own(key as never), flow: error0.flow(key), error: error0 })
       } catch {
         // eslint-disable-next-line no-console
@@ -658,9 +693,18 @@ export class Error0 extends Error {
     }
     // we do not serialize causes
     // ;(recreated as unknown as { cause?: unknown }).cause = errorRecord.cause
-    const isStackInProps = propsEntries.some(([key]) => key === 'stack')
-    if (typeof errorRecord.stack === 'string' && !isStackInProps) {
-      recreated.stack = errorRecord.stack
+    if (plugin.stack?.deserialize !== false && 'stack' in errorRecord) {
+      try {
+        const deserializedStack =
+          plugin.stack?.deserialize?.({ value: errorRecord.stack, serialized: errorRecord }) ??
+          (typeof errorRecord.stack === 'string' ? errorRecord.stack : undefined)
+        if (typeof deserializedStack === 'string') {
+          recreated.stack = deserializedStack
+        }
+      } catch {
+        // eslint-disable-next-line no-console
+        console.error('Error0: failed to deserialize stack', errorRecord)
+      }
     }
     return recreated
   }
@@ -719,6 +763,7 @@ export class Error0 extends Error {
       props: { ...(pluginRecord._plugin.props ?? {}) },
       methods: { ...(pluginRecord._plugin.methods ?? {}) },
       adapt: [...(pluginRecord._plugin.adapt ?? [])],
+      stack: pluginRecord._plugin.stack ? { ...pluginRecord._plugin.stack } : undefined,
     }
   }
 
@@ -751,6 +796,13 @@ export class Error0 extends Error {
     return this.use('adapt', value)
   }
 
+  static stack<TThis extends typeof Error0>(
+    this: TThis,
+    value: ErrorPluginStackOptions<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
+  ): ClassError0<PluginsMapOf<TThis>> {
+    return this.use('stack', value)
+  }
+
   static use<TThis extends typeof Error0, TBuilder extends PluginError0>(
     this: TThis,
     plugin: TBuilder,
@@ -778,14 +830,27 @@ export class Error0 extends Error {
     kind: 'adapt',
     value: ErrorPluginAdaptFn<ErrorInstanceOfMap<PluginsMapOf<TThis>>, ErrorResolvedProps<PluginsMapOf<TThis>>>,
   ): ClassError0<PluginsMapOf<TThis>>
+  static use<TThis extends typeof Error0>(
+    this: TThis,
+    kind: 'stack',
+    value: ErrorPluginStackOptions<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
+  ): ClassError0<PluginsMapOf<TThis>>
   static use(
     this: typeof Error0,
-    first: PluginError0 | 'prop' | 'method' | 'adapt',
-    key?: string | ErrorPluginAdaptFn<any, any>,
+    first: PluginError0 | 'prop' | 'method' | 'adapt' | 'stack',
+    key?: string | ErrorPluginAdaptFn<any, any> | ErrorPluginStackOptions<any>,
     value?: ErrorPluginPropOptions<unknown> | ErrorPluginMethodFn<unknown>,
   ): ClassError0 {
     if (first instanceof PluginError0) {
       return this._useWithPlugin(this._pluginFromBuilder(first))
+    }
+    if (first === 'stack') {
+      if (!key || typeof key !== 'object') {
+        throw new Error('Error0.use("stack", value) requires stack options')
+      }
+      return this._useWithPlugin({
+        stack: key as ErrorPluginStackOptions,
+      })
     }
     if (first === 'adapt') {
       if (typeof key !== 'function') {
@@ -800,6 +865,9 @@ export class Error0 extends Error {
     }
 
     if (first === 'prop') {
+      if (key === 'stack') {
+        throw new Error(RESERVED_STACK_PROP_ERROR)
+      }
       return this._useWithPlugin({
         props: { [key]: value as ErrorPluginPropOptions<unknown> },
       })
@@ -841,9 +909,17 @@ export class Error0 extends Error {
         console.error(`Error0: failed to serialize property ${key}`, resolvedRecord)
       }
     }
-    const isStackInProps = propsEntries.some(([key]) => key === 'stack')
-    if (!isStackInProps && typeof error0.stack === 'string') {
-      json.stack = error0.stack
+    if (plugin.stack?.serialize !== false) {
+      try {
+        const serializedStack =
+          plugin.stack?.serialize?.({ value: error0.stack, error: error0, isPublic }) ?? error0.stack
+        if (serializedStack !== undefined) {
+          json.stack = serializedStack
+        }
+      } catch {
+        // eslint-disable-next-line no-console
+        console.error('Error0: failed to serialize stack', error0)
+      }
     }
     return Object.fromEntries(Object.entries(json).filter(([, value]) => value !== undefined)) as Record<
       string,
