@@ -20,7 +20,7 @@ const fixStack = (stack: string | undefined) => {
 }
 
 describe('Error0', () => {
-  const statusExtension = Error0.extension()
+  const statusPlugin = Error0.plugin()
     .prop('status', {
       init: (input: number) => input,
       resolve: ({ flow }) => flow.find(Boolean),
@@ -31,7 +31,7 @@ describe('Error0', () => {
 
   const codes = ['NOT_FOUND', 'BAD_REQUEST', 'UNAUTHORIZED'] as const
   type Code = (typeof codes)[number]
-  const codeExtension = Error0.extension().extend('prop', 'code', {
+  const codePlugin = Error0.plugin().use('prop', 'code', {
     init: (input: Code) => input,
     resolve: ({ flow }) => flow.find(Boolean),
     serialize: ({ value, isPublic }) => (isPublic ? undefined : value),
@@ -52,8 +52,8 @@ describe('Error0', () => {
     `)
   })
 
-  it('with direct prop extension', () => {
-    const AppError = Error0.extend('prop', 'status', {
+  it('with direct prop plugin', () => {
+    const AppError = Error0.use('prop', 'status', {
       init: (input: number) => input,
       resolve: ({ flow }) => flow.find(Boolean),
       serialize: ({ value }) => value,
@@ -73,7 +73,7 @@ describe('Error0', () => {
     expectTypeOf<typeof AppError>().toExtend<ClassError0>()
   })
 
-  it('class helpers prop/method/refine mirror extend API', () => {
+  it('class helpers prop/method/refine mirror use API', () => {
     const AppError = Error0.prop('status', {
       init: (value: number) => value,
       resolve: ({ value, flow }) => {
@@ -97,8 +97,8 @@ describe('Error0', () => {
     expectTypeOf<typeof AppError>().toExtend<ClassError0>()
   })
 
-  it('with defined extension', () => {
-    const AppError = Error0.extend(statusExtension)
+  it('with defined plugin', () => {
+    const AppError = Error0.use(statusPlugin)
     const error = new AppError('test', { status: 400 })
     expect(error).toBeInstanceOf(AppError)
     expect(error).toBeInstanceOf(Error0)
@@ -112,9 +112,9 @@ describe('Error0', () => {
     `)
   })
 
-  it('twice extended Error0 extends previous by types', () => {
-    const AppError1 = Error0.extend(statusExtension)
-    const AppError2 = AppError1.extend(codeExtension)
+  it('twice used Error0 extends previous by types', () => {
+    const AppError1 = Error0.use(statusPlugin)
+    const AppError2 = AppError1.use(codePlugin)
     const error1 = new AppError1('test', { status: 400 })
     const error2 = new AppError2('test', { status: 400, code: 'NOT_FOUND' })
     expect(error1.status).toBe(400)
@@ -129,7 +129,7 @@ describe('Error0', () => {
   })
 
   it('can have cause', () => {
-    const AppError = Error0.extend(statusExtension)
+    const AppError = Error0.use(statusPlugin)
     const anotherError = new Error('another error')
     const error = new AppError('test', { status: 400, cause: anotherError })
     expect(error.status).toBe(400)
@@ -143,7 +143,7 @@ describe('Error0', () => {
   })
 
   it('can have many causes', () => {
-    const AppError = Error0.extend(statusExtension)
+    const AppError = Error0.use(statusPlugin)
     const anotherError = new Error('another error')
     const error1 = new AppError('test1', { status: 400, cause: anotherError })
     const error2 = new AppError('test2', { status: 400, cause: error1 })
@@ -153,7 +153,7 @@ describe('Error0', () => {
   })
 
   it('properties floating', () => {
-    const AppError = Error0.extend(statusExtension).extend(codeExtension)
+    const AppError = Error0.use(statusPlugin).use(codePlugin)
     const anotherError = new Error('another error')
     const error1 = new AppError('test1', { status: 400, cause: anotherError })
     const error2 = new AppError('test2', { code: 'NOT_FOUND', cause: error1 })
@@ -164,8 +164,8 @@ describe('Error0', () => {
     expect(Error0.causes(error2)).toEqual([error2, error1, anotherError])
   })
 
-  it('serialize uses identity by default and skips undefined extension values', () => {
-    const AppError = Error0.extend(statusExtension).prop('code', {
+  it('serialize uses identity by default and skips undefined plugin values', () => {
+    const AppError = Error0.use(statusPlugin).prop('code', {
       init: (input: string) => input,
       resolve: ({ flow }) => flow.find(Boolean),
       serialize: () => undefined,
@@ -177,14 +177,14 @@ describe('Error0', () => {
     expect('code' in json).toBe(false)
   })
 
-  it('serialize keeps stack by default without stack extension', () => {
-    const AppError = Error0.extend(statusExtension)
+  it('serialize keeps stack by default without stack plugin', () => {
+    const AppError = Error0.use(statusPlugin)
     const error = new AppError('test', { status: 500 })
     const json = AppError.serialize(error)
     expect(json.stack).toBe(error.stack)
   })
 
-  it('stack extension can customize serialization of stack prop', () => {
+  it('stack plugin can customize serialization of stack prop', () => {
     const AppError = Error0.prop('stack', {
       init: (input: string) => input,
       resolve: ({ value }) => (typeof value === 'string' ? value : undefined),
@@ -196,8 +196,8 @@ describe('Error0', () => {
     expect('stack' in json).toBe(false)
   })
 
-  it('.serialize() -> .from() roundtrip keeps extension values', () => {
-    const AppError = Error0.extend(statusExtension).extend(codeExtension)
+  it('.serialize() -> .from() roundtrip keeps plugin values', () => {
+    const AppError = Error0.use(statusPlugin).use(codePlugin)
     const error = new AppError('test', { status: 409, code: 'NOT_FOUND' })
     const json = AppError.serialize(error, false)
     const recreated = AppError.from(json)
@@ -208,7 +208,7 @@ describe('Error0', () => {
   })
 
   it('.serialize() floated props and not serialize causes', () => {
-    const AppError = Error0.extend(statusExtension).extend(codeExtension)
+    const AppError = Error0.use(statusPlugin).use(codePlugin)
     const error1 = new AppError('test', { status: 409 })
     const error2 = new AppError('test', { code: 'NOT_FOUND', cause: error1 })
     const json = AppError.serialize(error2, false)
@@ -218,7 +218,7 @@ describe('Error0', () => {
   })
 
   it('serialize can hide props for public output', () => {
-    const AppError = Error0.extend(statusExtension).extend(codeExtension)
+    const AppError = Error0.use(statusPlugin).use(codePlugin)
     const error = new AppError('test', { status: 401, code: 'NOT_FOUND' })
     const privateJson = AppError.serialize(error, false)
     const publicJson = AppError.serialize(error, true)
@@ -244,9 +244,9 @@ describe('Error0', () => {
     const parseResult = schema.safeParse({ x: 123 })
     const parsedError = parseResult.error
     assert.ok(parsedError)
-    const AppError = Error0.extend(statusExtension)
-      .extend(codeExtension)
-      .extend('refine', (error) => {
+    const AppError = Error0.use(statusPlugin)
+      .use(codePlugin)
+      .use('refine', (error) => {
         if (error.cause instanceof ZodError) {
           error.status = 422
           error.code = 'NOT_FOUND'
@@ -263,16 +263,16 @@ describe('Error0', () => {
     expect(error1.code).toBe(undefined)
   })
 
-  it('refine message and other props via return output values from extension', () => {
+  it('refine message and other props via return output values from plugin', () => {
     const schema = z.object({
       x: z.string(),
     })
     const parseResult = schema.safeParse({ x: 123 })
     const parsedError = parseResult.error
     assert.ok(parsedError)
-    const AppError = Error0.extend(statusExtension)
-      .extend(codeExtension)
-      .extend('refine', (error) => {
+    const AppError = Error0.use(statusPlugin)
+      .use(codePlugin)
+      .use('refine', (error) => {
         if (error.cause instanceof ZodError) {
           error.message = `Validation Error: ${error.message}`
           return {
@@ -293,7 +293,7 @@ describe('Error0', () => {
   })
 
   it('expected prop can be realized to send or not to send error to your error tracker', () => {
-    const AppError = Error0.extend(statusExtension)
+    const AppError = Error0.use(statusPlugin)
       .prop('expected', {
         init: (input: boolean) => input,
         resolve: ({ flow }) => flow.find((value) => typeof value === 'boolean'),
@@ -326,9 +326,9 @@ describe('Error0', () => {
   // you even can create computed or method to retrieve your error, so no problems with variants
 
   // it('can create and recongnize variant', () => {
-  //   const AppError = Error0.extend(statusExtension)
-  //     .extend(codeExtension)
-  //     .extend('prop', 'userId', {
+  //   const AppError = Error0.use(statusPlugin)
+  //     .use(codePlugin)
+  //     .use('prop', 'userId', {
   //       input: (value: string) => value,
   //       output: (error) => {
   //         for (const value of error.flow('userId')) {
