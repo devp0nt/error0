@@ -76,8 +76,8 @@ describe('Error0', () => {
   it('class helpers prop/method/adapt mirror use API', () => {
     const AppError = Error0.prop('status', {
       init: (value: number) => value,
-      resolve: ({ value, flow }) => {
-        return typeof value === 'number' ? value : undefined
+      resolve: ({ own, flow }) => {
+        return typeof own === 'number' ? own : undefined
       },
       serialize: ({ value }) => value,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
@@ -187,7 +187,7 @@ describe('Error0', () => {
   it('stack plugin can customize serialization of stack prop', () => {
     const AppError = Error0.prop('stack', {
       init: (input: string) => input,
-      resolve: ({ value }) => (typeof value === 'string' ? value : undefined),
+      resolve: ({ own }) => (typeof own === 'string' ? own : undefined),
       serialize: ({ value }) => undefined,
       deserialize: ({ value }) => (typeof value === 'string' ? value : undefined),
     })
@@ -303,7 +303,7 @@ describe('Error0', () => {
   it('serialize/deserialize can be set to false to disable them', () => {
     const AppError = Error0.prop('status', {
       init: (input: number) => input,
-      resolve: ({ value, flow }) => value ?? flow.find((item) => typeof item === 'number'),
+      resolve: ({ flow }) => flow.find((item) => typeof item === 'number'),
       serialize: false,
       deserialize: false,
     })

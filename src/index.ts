@@ -20,7 +20,7 @@ type ErrorPluginPropDeserialize<TOutputValue> =
   | false
 type ErrorPluginPropOptionsBase<TOutputValue, TError extends Error0, TResolveValue extends TOutputValue | undefined> = {
   resolve: (options: {
-    value: TOutputValue | undefined
+    own: TOutputValue | undefined
     flow: Array<TOutputValue | undefined>
     error: TError
   }) => TResolveValue
@@ -401,7 +401,7 @@ export class Error0 extends Error {
         }
       } else {
         Object.defineProperty(this, key, {
-          get: () => prop.resolve({ value: undefined, flow: this.flow(key), error: this }),
+          get: () => prop.resolve({ own: undefined, flow: this.flow(key), error: this }),
           set: (value) => {
             Object.defineProperty(this, key, {
               value,
@@ -708,7 +708,7 @@ export class Error0 extends Error {
         continue
       }
       try {
-        const value = prop.resolve({ value: error0.own(key), flow: error0.flow(key), error: error0 })
+        const value = prop.resolve({ own: error0.own(key), flow: error0.flow(key), error: error0 })
         const jsonValue = prop.serialize({ value, error: error0, isPublic })
         if (jsonValue !== undefined) {
           json[key] = jsonValue
