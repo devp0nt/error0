@@ -243,6 +243,63 @@ describe('Error0', () => {
     new AppError('test', { computed: 123 })
   })
 
+  it('prop without init omits constructor input and infers resolve output', () => {
+    const AppError = Error0.prop('statusCode', {
+      resolve: ({ flow }) => flow.find((item) => typeof item === 'number'),
+      serialize: ({ value }) => value,
+      deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
+    })
+
+    const error = new AppError('test')
+    expect(error.statusCode).toBe(undefined)
+    expectTypeOf<typeof error.statusCode>().toEqualTypeOf<number | undefined>()
+
+    // @ts-expect-error - statusCode input is disallowed when init is omitted
+    // eslint-disable-next-line no-new
+    new AppError('test', { statusCode: 123 })
+  })
+
+  it('prop output type is inferred from resolve type', () => {
+    const AppError = Error0.prop('x', {
+      init: (input: number) => input,
+      resolve: ({ flow }) => flow.find((item) => typeof item === 'number') || 500,
+      serialize: ({ value }) => value,
+      deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
+    })
+
+    const error = new AppError('test')
+    expect(error.x).toBe(500)
+    expectTypeOf<typeof error.x>().toEqualTypeOf<number>()
+
+    Error0.prop('x', {
+      init: (input: number) => input,
+      // @ts-expect-error - resolve type extends init type
+      resolve: ({ flow }) => 'string',
+      serialize: ({ value }) => value,
+      deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
+    })
+  })
+
+  it('prop resolved type can be not undefined with init not provided', () => {
+    const AppError = Error0.prop('x', {
+      resolve: ({ flow }) => flow.find((item) => typeof item === 'number') || 500,
+      serialize: ({ value }) => value,
+      deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
+    })
+
+    const error = new AppError('test')
+    expect(error.x).toBe(500)
+    expectTypeOf<typeof error.x>().toEqualTypeOf<number>()
+
+    Error0.prop('x', {
+      init: (input: number) => input,
+      // @ts-expect-error - resolve type extends init type
+      resolve: ({ flow }) => 'string',
+      serialize: ({ value }) => value,
+      deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
+    })
+  })
+
   it('serialize/deserialize can be set to false to disable them', () => {
     const AppError = Error0.prop('status', {
       init: (input: number) => input,
