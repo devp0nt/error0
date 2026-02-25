@@ -270,6 +270,8 @@ describe('Error0', () => {
     const error = new AppError('test')
     expect(error.x).toBe(500)
     expectTypeOf<typeof error.x>().toEqualTypeOf<number>()
+    expectTypeOf(AppError.own(error, 'x')).toEqualTypeOf<number | undefined>()
+    expectTypeOf(AppError.flow(error, 'x')).toEqualTypeOf<Array<number | undefined>>()
 
     Error0.prop('x', {
       init: (input: number) => input,
@@ -278,6 +280,79 @@ describe('Error0', () => {
       serialize: ({ value }) => value,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
     })
+  })
+
+  it('own/flow are typed by output type, not resolve type', () => {
+    const AppError = Error0.prop('code', {
+      init: (input: number | 'fallback') => input,
+      resolve: ({ flow }) => flow.find((item) => typeof item === 'number') ?? 500,
+      serialize: ({ value }) => value,
+      deserialize: ({ value }) => (typeof value === 'number' || value === 'fallback' ? value : undefined),
+    })
+    const error = new AppError('test')
+
+    expect(error.code).toBe(500)
+    expect(AppError.own(error, 'code')).toBe(undefined)
+    expect(AppError.own(error)).toEqual({ code: undefined })
+    expect(error.own()).toEqual({ code: undefined })
+    expectTypeOf<typeof error.code>().toEqualTypeOf<number>()
+    expectTypeOf(AppError.own(error, 'code')).toEqualTypeOf<number | 'fallback' | undefined>()
+    expectTypeOf(AppError.own(error)).toEqualTypeOf<{ code: number | 'fallback' | undefined }>()
+    expectTypeOf(AppError.flow(error, 'code')).toEqualTypeOf<Array<number | 'fallback' | undefined>>()
+  })
+
+  it('own/flow runtime behavior across causes', () => {
+    type Code = 'A' | 'B'
+    const isCode = (item: unknown): item is Code => item === 'A' || item === 'B'
+    const AppError = Error0.prop('status', {
+      init: (input: number) => input,
+      resolve: ({ flow }) => flow.find((item) => typeof item === 'number'),
+      serialize: ({ value }) => value,
+      deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
+    }).prop('code', {
+      init: (input: Code) => input,
+      resolve: ({ flow }) => flow.find(isCode),
+      serialize: ({ value }) => value,
+      deserialize: ({ value }) => (value === 'A' || value === 'B' ? value : undefined),
+    })
+
+    const root = new AppError('root', { status: 400, code: 'A' })
+    const mid = new AppError('mid', { cause: root })
+    const leaf = new AppError('leaf', { status: 500, cause: mid })
+
+    expect(leaf.own()).toEqual({ status: 500, code: undefined })
+    expect(AppError.own(leaf)).toEqual({ status: 500, code: undefined })
+    expect(leaf.flow('status')).toEqual([500, undefined, 400])
+    expect(AppError.flow(leaf, 'status')).toEqual([500, undefined, 400])
+    expect(leaf.flow('code')).toEqual([undefined, undefined, 'A'])
+    expect(AppError.flow(leaf, 'code')).toEqual([undefined, undefined, 'A'])
+  })
+
+  it('own/flow have strong types for static and instance methods', () => {
+    type Code = 'A' | 'B'
+    const isCode = (item: unknown): item is Code => item === 'A' || item === 'B'
+    const AppError = Error0.prop('status', {
+      init: (input: number) => input,
+      resolve: ({ flow }) => flow.find((item) => typeof item === 'number'),
+      serialize: ({ value }) => value,
+      deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
+    }).prop('code', {
+      init: (input: Code) => input,
+      resolve: ({ flow }) => flow.find(isCode),
+      serialize: ({ value }) => value,
+      deserialize: ({ value }) => (value === 'A' || value === 'B' ? value : undefined),
+    })
+
+    const error = new AppError('test', { status: 400, code: 'A' })
+
+    expectTypeOf(error.own('status')).toEqualTypeOf<number | undefined>()
+    expectTypeOf(error.own('code')).toEqualTypeOf<Code | undefined>()
+
+    expectTypeOf(AppError.own(error, 'status')).toEqualTypeOf<number | undefined>()
+    expectTypeOf(AppError.own(error, 'code')).toEqualTypeOf<Code | undefined>()
+    expectTypeOf(AppError.own(error)).toEqualTypeOf<{ status: number | undefined; code: Code | undefined }>()
+    expectTypeOf(AppError.flow(error, 'status')).toEqualTypeOf<Array<number | undefined>>()
+    expectTypeOf(AppError.flow(error, 'code')).toEqualTypeOf<Array<Code | undefined>>()
   })
 
   it('prop resolved type can be not undefined with init not provided', () => {

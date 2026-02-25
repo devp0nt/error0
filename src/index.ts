@@ -94,7 +94,7 @@ type PluginOutputProps<TProps extends ErrorPluginProps> = {
     : never
 }
 export type ErrorPluginsMap = {
-  props: Record<string, { init: unknown; resolve: unknown }>
+  props: Record<string, { init: unknown; output: unknown; resolve: unknown }>
   methods: Record<string, ErrorMethodRecord>
 }
 export type IsEmptyObject<T> = keyof T extends never ? true : false
@@ -113,6 +113,16 @@ export type ErrorInput<TPluginsMap extends ErrorPluginsMap> =
 
 type ErrorResolvedProps<TPluginsMap extends ErrorPluginsMap> = {
   [TKey in keyof TPluginsMap['props']]: TPluginsMap['props'][TKey]['resolve']
+}
+type ErrorOwnProps<TPluginsMap extends ErrorPluginsMap> = {
+  [TKey in keyof TPluginsMap['props']]: TPluginsMap['props'][TKey]['output'] | undefined
+}
+type ErrorOwnMethods<TPluginsMap extends ErrorPluginsMap> = {
+  own: {
+    (): ErrorOwnProps<TPluginsMap>
+    <TKey extends keyof TPluginsMap['props'] & string>(key: TKey): ErrorOwnProps<TPluginsMap>[TKey]
+  }
+  flow: <TKey extends keyof TPluginsMap['props'] & string>(key: TKey) => Array<ErrorOwnProps<TPluginsMap>[TKey]>
 }
 type ErrorMethods<TPluginsMap extends ErrorPluginsMap> = {
   [TKey in keyof TPluginsMap['methods']]: TPluginsMap['methods'][TKey] extends {
@@ -135,7 +145,7 @@ type ErrorStaticMethods<TPluginsMap extends ErrorPluginsMap> = {
 }
 
 type EmptyPluginsMap = {
-  props: Record<never, { init: never; resolve: never }>
+  props: Record<never, { init: never; output: never; resolve: never }>
   methods: Record<never, ErrorMethodRecord>
 }
 
@@ -148,11 +158,15 @@ type ErrorPluginResolved = {
 type PluginPropsMapOf<TPlugin extends ErrorPlugin> = {
   [TKey in keyof NonNullable<TPlugin['props']>]: NonNullable<TPlugin['props']>[TKey] extends ErrorPluginPropOptions<
     any,
-    any,
+    infer TOutputValue,
     any,
     infer TResolveValue
   >
-    ? { init: InferPluginPropInput<NonNullable<TPlugin['props']>[TKey]>; resolve: TResolveValue }
+    ? {
+        init: InferPluginPropInput<NonNullable<TPlugin['props']>[TKey]>
+        output: TOutputValue
+        resolve: TResolveValue
+      }
     : never
 }
 type PluginMethodsMapOf<TPlugin extends ErrorPlugin> = {
@@ -192,6 +206,11 @@ type ExtendErrorPluginsMapWithMethod<
 >
 
 type PluginsMapOf<TClass> = TClass extends { __pluginsMap?: infer TPluginsMap }
+  ? TPluginsMap extends ErrorPluginsMap
+    ? TPluginsMap
+    : EmptyPluginsMap
+  : EmptyPluginsMap
+type PluginsMapOfInstance<TInstance> = TInstance extends { constructor: { __pluginsMap?: infer TPluginsMap } }
   ? TPluginsMap extends ErrorPluginsMap
     ? TPluginsMap
     : EmptyPluginsMap
@@ -303,11 +322,24 @@ export class PluginError0<
 }
 
 export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> = {
-  new (message: string, input?: ErrorInput<TPluginsMap>): Error0 & ErrorResolved<TPluginsMap>
-  new (input: { message: string } & ErrorInput<TPluginsMap>): Error0 & ErrorResolved<TPluginsMap>
+  new (
+    message: string,
+    input?: ErrorInput<TPluginsMap>,
+  ): Error0 & ErrorResolved<TPluginsMap> & ErrorOwnMethods<TPluginsMap>
+  new (
+    input: { message: string } & ErrorInput<TPluginsMap>,
+  ): Error0 & ErrorResolved<TPluginsMap> & ErrorOwnMethods<TPluginsMap>
   readonly __pluginsMap?: TPluginsMap
-  from: (error: unknown) => Error0 & ErrorResolved<TPluginsMap>
+  from: (error: unknown) => Error0 & ErrorResolved<TPluginsMap> & ErrorOwnMethods<TPluginsMap>
   serialize: (error: unknown, isPublic?: boolean) => Record<string, unknown>
+  own: {
+    (error: object): ErrorOwnProps<TPluginsMap>
+    <TKey extends keyof TPluginsMap['props'] & string>(error: object, key: TKey): ErrorOwnProps<TPluginsMap>[TKey]
+  }
+  flow: <TKey extends keyof TPluginsMap['props'] & string>(
+    error: object,
+    key: TKey,
+  ) => Array<ErrorOwnProps<TPluginsMap>[TKey]>
   prop: <
     TKey extends string,
     TInputValue = undefined,
@@ -429,26 +461,65 @@ export class Error0 extends Error {
     }
     return true
   }
-
-  static own(error: object, key: string): unknown {
+  private static _ownByKey(error: object, key: string): unknown {
     if (this.isSelfProperty(error, key)) {
       return (error as Record<string, unknown>)[key]
     }
     return undefined
   }
-  own(key: string): unknown {
-    const ctor = this.constructor as typeof Error0
-    return ctor.own(this, key)
-  }
-
-  static flow(error: object, key: string): unknown[] {
+  private static _flowByKey(error: object, key: string): unknown[] {
     return this.causes(error, true).map((cause) => {
-      return this.own(cause, key)
+      return this._ownByKey(cause as object, key)
     })
   }
+
+  static own<TThis extends typeof Error0>(this: TThis, error: object): ErrorOwnProps<PluginsMapOf<TThis>>
+  static own<TThis extends typeof Error0, TKey extends keyof PluginsMapOf<TThis>['props'] & string>(
+    this: TThis,
+    error: object,
+    key: TKey,
+  ): ErrorOwnProps<PluginsMapOf<TThis>>[TKey]
+  static own(error: object, key?: string): unknown {
+    if (key === undefined) {
+      const ownValues: Record<string, unknown> = {}
+      const plugin = this._getResolvedPlugin()
+      for (const ownKey of Object.keys(plugin.props)) {
+        ownValues[ownKey] = this._ownByKey(error, ownKey)
+      }
+      return ownValues
+    }
+    return this._ownByKey(error, key)
+  }
+  own<TThis extends Error0>(this: TThis): ErrorOwnProps<PluginsMapOfInstance<TThis>>
+  own<TThis extends Error0, TKey extends keyof PluginsMapOfInstance<TThis>['props'] & string>(
+    this: TThis,
+    key: TKey,
+  ): ErrorOwnProps<PluginsMapOfInstance<TThis>>[TKey]
+  own(key?: string): unknown {
+    const ctor = this.constructor as typeof Error0
+    if (key === undefined) {
+      return ctor.own(this)
+    }
+    return ctor._ownByKey(this, key)
+  }
+
+  static flow<TThis extends typeof Error0, TKey extends keyof PluginsMapOf<TThis>['props'] & string>(
+    this: TThis,
+    error: object,
+    key: TKey,
+  ): Array<ErrorOwnProps<PluginsMapOf<TThis>>[TKey]>
+  static flow(error: object, key: string): unknown[]
+  static flow(error: object, key: string): unknown[] {
+    return this._flowByKey(error, key)
+  }
+  flow<TThis extends Error0, TKey extends keyof PluginsMapOfInstance<TThis>['props'] & string>(
+    this: TThis,
+    key: TKey,
+  ): Array<ErrorOwnProps<PluginsMapOfInstance<TThis>>[TKey]>
+  flow(key: string): unknown[]
   flow(key: string): unknown[] {
     const ctor = this.constructor as typeof Error0
-    return ctor.flow(this, key)
+    return ctor._flowByKey(this, key)
   }
 
   static causes(error: unknown, instancesOnly?: false): unknown[]
@@ -708,7 +779,11 @@ export class Error0 extends Error {
         continue
       }
       try {
-        const value = prop.resolve({ own: error0.own(key), flow: error0.flow(key), error: error0 })
+        const value = prop.resolve({
+          own: this._ownByKey(error0, key),
+          flow: this._flowByKey(error0, key),
+          error: error0,
+        })
         const jsonValue = prop.serialize({ value, error: error0, isPublic })
         if (jsonValue !== undefined) {
           json[key] = jsonValue
