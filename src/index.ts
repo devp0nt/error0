@@ -59,15 +59,24 @@ export type ErrorPluginAdaptFn<
   TError extends Error0 = Error0,
   TOutputProps extends Record<string, unknown> = Record<never, never>,
 > = ((error: TError) => void) | ((error: TError) => ErrorPluginAdaptResult<TOutputProps>)
-export type ErrorPluginStackSerialize<TError extends Error0> =
-  (options: { value: string | undefined; error: TError; isPublic: boolean }) => unknown
-export type ErrorPluginStack<TError extends Error0 = Error0> = {serialize: ErrorPluginStackSerialize<TError>}
-export type ErrorPluginCauseSerialize<TError extends Error0> =
-  (options: { value: unknown; error: TError; isPublic: boolean }) => unknown
-export type ErrorPluginCause<TError extends Error0 = Error0> = {serialize: ErrorPluginCauseSerialize<TError>}
-export type ErrorPluginMessageSerialize<TError extends Error0> =
-  (options: { value: string; error: TError; isPublic: boolean }) => unknown
-export type ErrorPluginMessage<TError extends Error0 = Error0> = {serialize: ErrorPluginMessageSerialize<TError>}
+export type ErrorPluginStackSerialize<TError extends Error0> = (options: {
+  value: string | undefined
+  error: TError
+  isPublic: boolean
+}) => unknown
+export type ErrorPluginStack<TError extends Error0 = Error0> = { serialize: ErrorPluginStackSerialize<TError> }
+export type ErrorPluginCauseSerialize<TError extends Error0> = (options: {
+  value: unknown
+  error: TError
+  isPublic: boolean
+}) => unknown
+export type ErrorPluginCause<TError extends Error0 = Error0> = { serialize: ErrorPluginCauseSerialize<TError> }
+export type ErrorPluginMessageSerialize<TError extends Error0> = (options: {
+  value: string
+  error: TError
+  isPublic: boolean
+}) => unknown
+export type ErrorPluginMessage<TError extends Error0 = Error0> = { serialize: ErrorPluginMessageSerialize<TError> }
 type ErrorMethodRecord = {
   args: unknown[]
   output: unknown
@@ -230,7 +239,7 @@ type PluginsMapOf<TClass> = TClass extends { __pluginsMap?: infer TPluginsMap }
     ? TPluginsMap
     : EmptyPluginsMap
   : EmptyPluginsMap
-type PluginsMapOfInstance<TInstance> = TInstance extends { constructor: { __pluginsMap?: infer TPluginsMap } }
+type PluginsMapOfInstance<TInstance> = TInstance extends { __pluginsMap?: infer TPluginsMap }
   ? TPluginsMap extends ErrorPluginsMap
     ? TPluginsMap
     : EmptyPluginsMap
@@ -381,10 +390,16 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
   new (
     message: string,
     input?: ErrorInput<TPluginsMap>,
-  ): Error0 & ErrorResolved<TPluginsMap> & ErrorOwnMethods<TPluginsMap> & ErrorResolveMethods<TPluginsMap>
+  ): Error0 &
+    ErrorResolved<TPluginsMap> &
+    ErrorOwnMethods<TPluginsMap> &
+    ErrorResolveMethods<TPluginsMap> & { readonly __pluginsMap?: TPluginsMap }
   new (
     input: { message: string } & ErrorInput<TPluginsMap>,
-  ): Error0 & ErrorResolved<TPluginsMap> & ErrorOwnMethods<TPluginsMap> & ErrorResolveMethods<TPluginsMap>
+  ): Error0 &
+    ErrorResolved<TPluginsMap> &
+    ErrorOwnMethods<TPluginsMap> &
+    ErrorResolveMethods<TPluginsMap> & { readonly __pluginsMap?: TPluginsMap }
   readonly __pluginsMap?: TPluginsMap
   from: (
     error: unknown,
@@ -449,6 +464,7 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
 
 export class Error0 extends Error {
   static readonly __pluginsMap?: EmptyPluginsMap
+  readonly __pluginsMap?: EmptyPluginsMap
   protected static _plugins: ErrorPlugin[] = []
 
   private static readonly _emptyPlugin: ErrorPluginResolved = {

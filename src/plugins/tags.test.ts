@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, expectTypeOf, it } from 'bun:test'
 import { Error0 } from '../index.js'
 import { tagsPlugin } from './tags.js'
 
@@ -8,6 +8,9 @@ describe('tagsPlugin', () => {
     const root = new AppError('root', { tags: ['db', 'retry'] })
     const leaf = new AppError('leaf', { tags: ['api', 'retry'], cause: root })
     expect(leaf.resolve().tags).toEqual(['api', 'retry', 'db'])
+    expectTypeOf(leaf.resolve().tags).toEqualTypeOf<string[] | undefined>()
+    expectTypeOf(leaf.own('tags')).toEqualTypeOf<string[] | undefined>()
+    expectTypeOf(leaf.flow('tags')).toEqualTypeOf<Array<string[] | undefined>>()
   })
 
   it('serializes tags only for private output', () => {
