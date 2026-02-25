@@ -226,6 +226,38 @@ describe('Error0', () => {
     expect('code' in publicJson).toBe(false)
   })
 
+  it('prop init without input arg infers undefined-only constructor input', () => {
+    const AppError = Error0.prop('computed', {
+      init: () => undefined as number | undefined,
+      resolve: ({ flow }) => flow.find((item) => typeof item === 'number'),
+      serialize: ({ value }) => value,
+      deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
+    })
+
+    const error = new AppError('test')
+    expect(error.computed).toBe(undefined)
+    expectTypeOf<typeof error.computed>().toEqualTypeOf<number | undefined>()
+
+    // @ts-expect-error - computed input is disallowed when init has no input arg
+    // eslint-disable-next-line no-new
+    new AppError('test', { computed: 123 })
+  })
+
+  it('serialize/deserialize can be set to false to disable them', () => {
+    const AppError = Error0.prop('status', {
+      init: (input: number) => input,
+      resolve: ({ value, flow }) => value ?? flow.find((item) => typeof item === 'number'),
+      serialize: false,
+      deserialize: false,
+    })
+    const error = new AppError('test', { status: 401 })
+    const json = AppError.serialize(error)
+    expect('status' in json).toBe(false)
+
+    const recreated = AppError.from({ ...json, status: 999 })
+    expect(recreated.status).toBe(undefined)
+  })
+
   it('by default error0 created from another error has same message', () => {
     const schema = z.object({
       x: z.string(),

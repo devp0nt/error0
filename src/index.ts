@@ -1,12 +1,31 @@
+type IsUnknown<T> = unknown extends T ? ([T] extends [unknown] ? true : false) : false
+type NormalizeUnknownToUndefined<T> = IsUnknown<T> extends true ? undefined : T
+type IsOnlyUndefined<T> = [Exclude<T, undefined>] extends [never] ? true : false
+type InferFirstArg<TFn> = TFn extends (...args: infer TArgs) => unknown
+  ? TArgs extends [infer TFirst, ...unknown[]]
+    ? TFirst
+    : undefined
+  : undefined
+type InferPluginPropInput<TProp extends ErrorPluginPropOptions<any, any, any>> = NormalizeUnknownToUndefined<
+  InferFirstArg<TProp['init']>
+>
+type ErrorPluginPropInit<TInputValue, TOutputValue> = ((input: TInputValue) => TOutputValue) | (() => TOutputValue)
+type ErrorPluginPropSerialize<TOutputValue, TError extends Error0> =
+  | ((options: { value: TOutputValue; error: TError; isPublic: boolean }) => unknown)
+  | false
+type ErrorPluginPropDeserialize<TOutputValue> =
+  | ((options: { value: unknown; serialized: Record<string, unknown> }) => TOutputValue | undefined)
+  | false
+
 export type ErrorPluginPropOptions<TInputValue, TOutputValue, TError extends Error0 = Error0> = {
-  init: (input: TInputValue) => TOutputValue
+  init: ErrorPluginPropInit<TInputValue, TOutputValue>
   resolve: (options: {
     value: TOutputValue | undefined
     flow: Array<TOutputValue | undefined>
     error: TError
   }) => TOutputValue | undefined
-  serialize: (options: { value: TOutputValue; error: TError; isPublic: boolean }) => unknown
-  deserialize: (options: { value: unknown; serialized: Record<string, unknown> }) => TOutputValue | undefined
+  serialize: ErrorPluginPropSerialize<TOutputValue, TError>
+  deserialize: ErrorPluginPropDeserialize<TOutputValue>
 }
 export type ErrorPluginMethodFn<TOutputValue, TArgs extends unknown[] = unknown[], TError extends Error0 = Error0> = (
   error: TError,
@@ -52,16 +71,18 @@ export type IsEmptyObject<T> = keyof T extends never ? true : false
 export type ErrorInputBase = {
   cause?: unknown
 }
+type ErrorInputPluginProps<TPluginsMap extends ErrorPluginsMap> = {
+  [TKey in keyof TPluginsMap['props'] as IsOnlyUndefined<TPluginsMap['props'][TKey]['init']> extends true
+    ? never
+    : TKey]?: TPluginsMap['props'][TKey]['init']
+}
 export type ErrorInput<TPluginsMap extends ErrorPluginsMap> =
   IsEmptyObject<TPluginsMap['props']> extends true
     ? ErrorInputBase
-    : ErrorInputBase &
-        Partial<{
-          [TKey in keyof TPluginsMap['props']]: TPluginsMap['props'][TKey]['init']
-        }>
+    : ErrorInputBase & ErrorInputPluginProps<TPluginsMap>
 
 type ErrorOutputProps<TPluginsMap extends ErrorPluginsMap> = {
-  [TKey in keyof TPluginsMap['props']]?: TPluginsMap['props'][TKey]['resolve']
+  [TKey in keyof TPluginsMap['props']]: TPluginsMap['props'][TKey]['resolve'] | undefined
 }
 type ErrorOutputMethods<TPluginsMap extends ErrorPluginsMap> = {
   [TKey in keyof TPluginsMap['methods']]: TPluginsMap['methods'][TKey] extends {
@@ -96,10 +117,10 @@ type ErrorPluginResolved = {
 
 type PluginPropsMapOf<TPlugin extends ErrorPlugin> = {
   [TKey in keyof NonNullable<TPlugin['props']>]: NonNullable<TPlugin['props']>[TKey] extends ErrorPluginPropOptions<
-    infer TInputValue,
+    any,
     infer TOutputValue
   >
-    ? { init: TInputValue; resolve: TOutputValue }
+    ? { init: InferPluginPropInput<NonNullable<TPlugin['props']>[TKey]>; resolve: TOutputValue }
     : never
 }
 type PluginMethodsMapOf<TPlugin extends ErrorPlugin> = {
@@ -441,6 +462,9 @@ export class Error0 extends Error {
     const plugin = this._getResolvedPlugin()
     const propsEntries = Object.entries(plugin.props)
     for (const [key, prop] of propsEntries) {
+      if (prop.deserialize === false) {
+        continue
+      }
       if (!(key in errorRecord)) {
         continue
       }
@@ -608,6 +632,9 @@ export class Error0 extends Error {
     const plugin = this._getResolvedPlugin()
     const propsEntries = Object.entries(plugin.props)
     for (const [key, prop] of propsEntries) {
+      if (prop.serialize === false) {
+        continue
+      }
       try {
         const value = prop.resolve({ value: error0.own(key), flow: error0.flow(key), error: error0 })
         const jsonValue = prop.serialize({ value, error: error0, isPublic })
