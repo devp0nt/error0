@@ -594,21 +594,21 @@ export class Error0 extends Error {
     for (const [key, prop] of Object.entries(plugin.props)) {
       try {
         // resolved[key] = (error0 as unknown as Record<string, unknown>)[key]
-        // const options = Object.defineProperties(
-        //   {
-        //     error: error0,
-        //   },
-        //   {
-        //     own: {
-        //       get: () => error0.own(key as never),
-        //     },
-        //     flow: {
-        //       get: () => error0.flow(key),
-        //     },
-        //   },
-        // )
-        // resolved[key] = prop.resolve(options as never)
-        resolved[key] = prop.resolve({ own: error0.own(key as never), flow: error0.flow(key), error: error0 })
+        const options = Object.defineProperties(
+          {
+            error: error0,
+          },
+          {
+            own: {
+              get: () => error0.own(key as never),
+            },
+            flow: {
+              get: () => error0.flow(key),
+            },
+          },
+        )
+        resolved[key] = prop.resolve(options as never)
+        // resolved[key] = prop.resolve({ own: error0.own(key as never), flow: error0.flow(key), error: error0 })
       } catch {
         // eslint-disable-next-line no-console
         console.error(`Error0: failed to resolve property ${key}`, error0)
