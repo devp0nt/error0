@@ -1,0 +1,25 @@
+import { Error0 } from '../index.js'
+
+const isExpected = (flow: unknown[]) => {
+  let expected = false
+  for (const value of flow) {
+    if (value === false) {
+      return false
+    }
+    if (value === true) {
+      expected = true
+    }
+  }
+  return expected
+}
+
+export const expectedPlugin = Error0.plugin()
+  .use('prop', 'expected', {
+    init: (input: boolean) => input,
+    resolve: ({ flow }) => isExpected(flow),
+    serialize: ({ value }) => value,
+    deserialize: ({ value }) => (typeof value === 'boolean' ? value : undefined),
+  })
+  .use('method', 'isExpected', (error) => {
+    return isExpected(error.flow('expected'))
+  })

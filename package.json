@@ -23,12 +23,20 @@
       "types": "./dist/esm/index.d.ts",
       "require": "./dist/cjs/index.cjs",
       "import": "./dist/esm/index.js"
+    },
+    "./plugins/*": {
+      "types": "./dist/esm/plugins/*.d.ts",
+      "require": "./dist/cjs/plugins/*.cjs",
+      "import": "./dist/esm/plugins/*.js"
     }
   },
   "typesVersions": {
     "*": {
       "": [
         "./dist/esm/index.d.ts"
+      ],
+      "plugins/*": [
+        "./dist/esm/plugins/*"
       ]
     }
   },
