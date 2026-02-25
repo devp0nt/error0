@@ -404,6 +404,10 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
   from: (
     error: unknown,
   ) => Error0 & ErrorResolved<TPluginsMap> & ErrorOwnMethods<TPluginsMap> & ErrorResolveMethods<TPluginsMap>
+  round: (
+    error: unknown,
+    isPublic?: boolean,
+  ) => Error0 & ErrorResolved<TPluginsMap> & ErrorOwnMethods<TPluginsMap> & ErrorResolveMethods<TPluginsMap>
   resolve: (error: unknown) => ErrorResolvedProps<TPluginsMap>
   serialize: (error: unknown, isPublic?: boolean) => Record<string, unknown>
   own: {
@@ -711,6 +715,10 @@ export class Error0 extends Error {
       return this._fromSerialized(error)
     }
     return this._fromNonError0(error)
+  }
+
+  static round(error: unknown, isPublic = false): Error0 {
+    return this.from(this.serialize(error, isPublic))
   }
 
   private static _applyAdapt(error: Error0): Error0 {
@@ -1074,5 +1082,10 @@ export class Error0 extends Error {
   serialize(isPublic = true): Record<string, unknown> {
     const ctor = this.constructor as typeof Error0
     return ctor.serialize(this, isPublic)
+  }
+
+  round<TThis extends Error0>(this: TThis, isPublic = true): TThis {
+    const ctor = this.constructor as typeof Error0
+    return ctor.round(this, isPublic) as TThis
   }
 }

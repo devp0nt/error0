@@ -267,6 +267,24 @@ describe('Error0', () => {
     expect(AppError.serialize(recreated, false)).toEqual(json)
   })
 
+  it('.round() static and instance do serialize/from roundtrip', () => {
+    const AppError = Error0.use(statusPlugin).use(codePlugin)
+    const error = new AppError('test', { status: 409, code: 'NOT_FOUND' })
+    const roundedStatic = AppError.round(error, false)
+    const roundedInstance = error.round(false)
+
+    expect(roundedStatic).toBeInstanceOf(AppError)
+    expect(roundedInstance).toBeInstanceOf(AppError)
+    expect(roundedStatic.status).toBe(409)
+    expect(roundedStatic.code).toBe('NOT_FOUND')
+    expect(roundedInstance.status).toBe(409)
+    expect(roundedInstance.code).toBe('NOT_FOUND')
+    expectTypeOf(roundedStatic.status).toEqualTypeOf<number | undefined>()
+    expectTypeOf(roundedStatic.code).toEqualTypeOf<'NOT_FOUND' | 'BAD_REQUEST' | 'UNAUTHORIZED' | undefined>()
+    expectTypeOf(roundedInstance.status).toEqualTypeOf<number | undefined>()
+    expectTypeOf(roundedInstance.code).toEqualTypeOf<'NOT_FOUND' | 'BAD_REQUEST' | 'UNAUTHORIZED' | undefined>()
+  })
+
   it('.serialize() floated props and not serialize causes', () => {
     const AppError = Error0.use(statusPlugin).use(codePlugin)
     const error1 = new AppError('test', { status: 409 })
@@ -276,7 +294,6 @@ describe('Error0', () => {
     expect(json.code).toBe('NOT_FOUND')
     expect('cause' in json).toBe(false)
   })
-
 
   it('by default causes not serialized', () => {
     const AppError = Error0.use(statusPlugin).use(codePlugin)
@@ -554,7 +571,6 @@ describe('Error0', () => {
     expect(error1.code).toBe(undefined)
   })
 
-
   it('messages can be combined on serialization', () => {
     const AppError = Error0.use(statusPlugin)
       .use(codePlugin)
@@ -608,7 +624,6 @@ describe('Error0', () => {
           at <anonymous> (...)"
     `)
   })
-
 
   it('Error0 assignable to LikeError0', () => {
     type LikeError0 = {
