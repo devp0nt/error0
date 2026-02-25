@@ -920,8 +920,12 @@ export class Error0 extends Error {
       if (!key || typeof key !== 'object') {
         throw new Error('Error0.use("stack", value) requires stack options')
       }
+      const { serialize, deserialize } = key as ErrorPluginStackOptions
       return this._useWithPlugin({
-        stack: key as ErrorPluginStackOptions,
+        stack: {
+          serialize,
+          deserialize: typeof deserialize !== 'undefined' ? deserialize : !!serialize,
+        },
       })
     }
     if (first === 'cause') {
