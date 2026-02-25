@@ -194,6 +194,20 @@ describe('Error0', () => {
     expect((json.stack as string).startsWith('custom:')).toBe(true)
   })
 
+  it('stack plugin serialize true keeps default stack', () => {
+    const AppError = Error0.stack({ serialize: true })
+    const error = new AppError('test')
+    const json = AppError.serialize(error)
+    expect(json.stack).toBe(error.stack)
+  })
+
+  it('stack plugin serialize false disables stack serialization', () => {
+    const AppError = Error0.stack({ serialize: false })
+    const error = new AppError('test')
+    const json = AppError.serialize(error)
+    expect('stack' in json).toBe(false)
+  })
+
   it('prop("stack") throws and suggests using stack plugin', () => {
     expect(() =>
       Error0.prop('stack', {
@@ -235,6 +249,24 @@ describe('Error0', () => {
     expect(json.status).toBe(409)
     expect(json.code).toBe('NOT_FOUND')
     expect('cause' in json).toBe(false)
+  })
+
+  it('cause plugin true serializes and deserializes nested Error0 causes', () => {
+    const AppError = Error0.use(statusPlugin).use(codePlugin).cause({ serialize: true })
+    const causeError = new AppError('cause', { status: 409, code: 'NOT_FOUND' })
+    const error = new AppError('root', { status: 500, cause: causeError })
+
+    const json = AppError.serialize(error, false)
+    expect(typeof json.cause).toBe('object')
+    expect((json.cause as Record<string, unknown>).message).toBe('cause')
+    expect((json.cause as Record<string, unknown>).status).toBe(409)
+    expect((json.cause as Record<string, unknown>).code).toBe('NOT_FOUND')
+
+    const recreated = AppError.from(json)
+    expect(recreated).toBeInstanceOf(AppError)
+    expect(recreated.cause).toBeInstanceOf(AppError)
+    expect((recreated.cause as InstanceType<typeof AppError>).status).toBe(409)
+    expect((recreated.cause as InstanceType<typeof AppError>).code).toBe('NOT_FOUND')
   })
 
   it('serialize can hide props for public output', () => {
@@ -564,6 +596,29 @@ describe('Error0', () => {
             .filter((value): value is string => typeof value === 'string')
             .join('\n'),
       })
+    const error1 = new AppError('test1', { status: 400, code: 'NOT_FOUND' })
+    const error2 = new AppError('test2', { status: 401, cause: error1 })
+    const mergedStack1 = error1.serialize().stack as string
+    const mergedStack2 = error2.serialize().stack as string
+    expect(mergedStack1).toContain('Error0: test1')
+    expect(mergedStack2).toContain('Error0: test2')
+    expect(mergedStack2).toContain('Error0: test1')
+    expect(fixStack(mergedStack1)).toMatchInlineSnapshot(`
+      "Error0: test1
+          at <anonymous> (...)"
+    `)
+    expect(fixStack(mergedStack2)).toMatchInlineSnapshot(`
+      "Error0: test2
+          at <anonymous> (...)
+      Error0: test1
+          at <anonymous> (...)"
+    `)
+  })
+
+  it('stack plugin can merge stack across causes in one serialized value by helper "merge"', () => {
+    const AppError = Error0.use(statusPlugin).use(codePlugin).stack({
+      serialize: 'merge',
+    })
     const error1 = new AppError('test1', { status: 400, code: 'NOT_FOUND' })
     const error2 = new AppError('test2', { status: 401, cause: error1 })
     const mergedStack1 = error1.serialize().stack as string

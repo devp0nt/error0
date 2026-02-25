@@ -61,13 +61,24 @@ export type ErrorPluginAdaptFn<
 > = ((error: TError) => void) | ((error: TError) => ErrorPluginAdaptResult<TOutputProps>)
 export type ErrorPluginStackSerialize<TError extends Error0> =
   | ((options: { value: string | undefined; error: TError; isPublic: boolean }) => unknown)
-  | false
+  | boolean
+  | 'merge'
 export type ErrorPluginStackDeserialize =
   | ((options: { value: unknown; serialized: Record<string, unknown> }) => string | undefined)
-  | false
+  | boolean
 export type ErrorPluginStackOptions<TError extends Error0 = Error0> = {
   serialize?: ErrorPluginStackSerialize<TError>
   deserialize?: ErrorPluginStackDeserialize
+}
+export type ErrorPluginCauseSerialize<TError extends Error0> =
+  | ((options: { value: unknown; error: TError; isPublic: boolean }) => unknown)
+  | boolean
+export type ErrorPluginCauseDeserialize =
+  | ((options: { value: unknown; serialized: Record<string, unknown> }) => unknown)
+  | boolean
+export type ErrorPluginCauseOptions<TError extends Error0 = Error0> = {
+  serialize?: ErrorPluginCauseSerialize<TError>
+  deserialize?: ErrorPluginCauseDeserialize
 }
 type ErrorMethodRecord = {
   args: unknown[]
@@ -85,6 +96,7 @@ export type ErrorPlugin<
   methods?: TMethods
   adapt?: Array<ErrorPluginAdaptFn<Error0, PluginOutputProps<TProps>>>
   stack?: ErrorPluginStackOptions
+  cause?: ErrorPluginCauseOptions
 }
 type AddPropToPluginProps<
   TProps extends ErrorPluginProps,
@@ -168,6 +180,7 @@ type ErrorPluginResolved = {
   methods: Record<string, ErrorPluginMethodFn<unknown>>
   adapt: Array<ErrorPluginAdaptFn<Error0, Record<string, unknown>>>
   stack?: ErrorPluginStackOptions
+  cause?: ErrorPluginCauseOptions
 }
 const RESERVED_STACK_PROP_ERROR = 'Error0: "stack" is a reserved prop key. Use .stack(...) plugin API instead'
 
@@ -260,6 +273,7 @@ export class PluginError0<
       methods: { ...(plugin?.methods ?? {}) },
       adapt: [...(plugin?.adapt ?? [])],
       stack: plugin?.stack,
+      cause: plugin?.cause,
     }
   }
 
@@ -292,6 +306,10 @@ export class PluginError0<
     return this.use('stack', value)
   }
 
+  cause(value: ErrorPluginCauseOptions<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods> {
+    return this.use('cause', value)
+  }
+
   use<
     TKey extends string,
     TInputValue = undefined,
@@ -312,15 +330,17 @@ export class PluginError0<
     value: ErrorPluginAdaptFn<BuilderError0<TProps, TMethods>, PluginOutputProps<TProps>>,
   ): PluginError0<TProps, TMethods>
   use(kind: 'stack', value: ErrorPluginStackOptions<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods>
+  use(kind: 'cause', value: ErrorPluginCauseOptions<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods>
   use(
-    kind: 'prop' | 'method' | 'adapt' | 'stack',
-    keyOrValue: string | ErrorPluginAdaptFn<any, any> | ErrorPluginStackOptions<any>,
+    kind: 'prop' | 'method' | 'adapt' | 'stack' | 'cause',
+    keyOrValue: string | ErrorPluginAdaptFn<any, any> | ErrorPluginStackOptions<any> | ErrorPluginCauseOptions<any>,
     value?: ErrorPluginPropOptions<unknown, unknown, any> | ErrorPluginMethodFn<unknown, unknown[], any>,
   ): PluginError0<any, any> {
     const nextProps: ErrorPluginProps = { ...(this._plugin.props ?? {}) }
     const nextMethods: ErrorPluginMethods = { ...(this._plugin.methods ?? {}) }
     const nextAdapt: Array<ErrorPluginAdaptFn<Error0, Record<string, unknown>>> = [...(this._plugin.adapt ?? [])]
     let nextStack: ErrorPluginStackOptions | undefined = this._plugin.stack
+    let nextCause: ErrorPluginCauseOptions | undefined = this._plugin.cause
     if (kind === 'prop') {
       const key = keyOrValue as string
       if (key === 'stack') {
@@ -338,14 +358,25 @@ export class PluginError0<
       nextMethods[key] = value as ErrorPluginMethodFn<any, any[]>
     } else if (kind === 'adapt') {
       nextAdapt.push(keyOrValue as ErrorPluginAdaptFn<Error0, Record<string, unknown>>)
+    } else if (kind === 'stack') {
+      const { serialize, deserialize } = keyOrValue as ErrorPluginStackOptions
+      nextStack = {
+        serialize,
+        deserialize: typeof deserialize !== 'undefined' ? deserialize : !!serialize,
+      }
     } else {
-      nextStack = { ...(keyOrValue as ErrorPluginStackOptions) }
+      const { serialize, deserialize } = keyOrValue as ErrorPluginCauseOptions
+      nextCause = {
+        serialize,
+        deserialize: typeof deserialize !== 'undefined' ? deserialize : !!serialize,
+      }
     }
     return new PluginError0({
       props: nextProps,
       methods: nextMethods,
       adapt: nextAdapt,
       stack: nextStack,
+      cause: nextCause,
     })
   }
 }
@@ -389,6 +420,7 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
     value: ErrorPluginAdaptFn<ErrorInstanceOfMap<TPluginsMap>, ErrorResolvedProps<TPluginsMap>>,
   ) => ClassError0<TPluginsMap>
   stack: (value: ErrorPluginStackOptions<ErrorInstanceOfMap<TPluginsMap>>) => ClassError0<TPluginsMap>
+  cause: (value: ErrorPluginCauseOptions<ErrorInstanceOfMap<TPluginsMap>>) => ClassError0<TPluginsMap>
   use: {
     <TBuilder extends PluginError0>(
       plugin: TBuilder,
@@ -413,6 +445,7 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
       value: ErrorPluginAdaptFn<ErrorInstanceOfMap<TPluginsMap>, ErrorResolvedProps<TPluginsMap>>,
     ): ClassError0<TPluginsMap>
     (kind: 'stack', value: ErrorPluginStackOptions<ErrorInstanceOfMap<TPluginsMap>>): ClassError0<TPluginsMap>
+    (kind: 'cause', value: ErrorPluginCauseOptions<ErrorInstanceOfMap<TPluginsMap>>): ClassError0<TPluginsMap>
   }
   plugin: () => PluginError0
 } & ErrorStaticMethods<TPluginsMap>
@@ -426,6 +459,7 @@ export class Error0 extends Error {
     methods: {},
     adapt: [],
     stack: undefined,
+    cause: undefined,
   }
 
   private static _getResolvedPlugin(this: typeof Error0): ErrorPluginResolved {
@@ -443,6 +477,9 @@ export class Error0 extends Error {
       resolved.adapt.push(...(plugin.adapt ?? this._emptyPlugin.adapt))
       if (plugin.stack) {
         resolved.stack = plugin.stack
+      }
+      if (plugin.cause) {
+        resolved.cause = plugin.cause
       }
     }
     return resolved
@@ -693,17 +730,39 @@ export class Error0 extends Error {
     }
     // we do not serialize causes
     // ;(recreated as unknown as { cause?: unknown }).cause = errorRecord.cause
-    if (plugin.stack?.deserialize !== false && 'stack' in errorRecord) {
+    const stackDeserialize = plugin.stack?.deserialize
+    if (stackDeserialize !== false && 'stack' in errorRecord) {
       try {
         const deserializedStack =
-          plugin.stack?.deserialize?.({ value: errorRecord.stack, serialized: errorRecord }) ??
-          (typeof errorRecord.stack === 'string' ? errorRecord.stack : undefined)
+          (typeof stackDeserialize === 'function'
+            ? stackDeserialize({ value: errorRecord.stack, serialized: errorRecord })
+            : typeof errorRecord.stack === 'string'
+              ? errorRecord.stack
+              : undefined) ?? (typeof errorRecord.stack === 'string' ? errorRecord.stack : undefined)
         if (typeof deserializedStack === 'string') {
           recreated.stack = deserializedStack
         }
       } catch {
         // eslint-disable-next-line no-console
         console.error('Error0: failed to deserialize stack', errorRecord)
+      }
+    }
+    const causeDeserialize = plugin.cause?.deserialize ?? false
+    if (causeDeserialize && 'cause' in errorRecord) {
+      try {
+        if (causeDeserialize === true) {
+          if (this.isSerialized(errorRecord.cause)) {
+            ;(recreated as { cause?: unknown }).cause = this._fromSerialized(errorRecord.cause)
+          }
+        } else {
+          const deserializedCause = causeDeserialize({ value: errorRecord.cause, serialized: errorRecord })
+          if (deserializedCause !== undefined) {
+            ;(recreated as { cause?: unknown }).cause = deserializedCause
+          }
+        }
+      } catch {
+        // eslint-disable-next-line no-console
+        console.error('Error0: failed to deserialize cause', errorRecord)
       }
     }
     return recreated
@@ -764,6 +823,7 @@ export class Error0 extends Error {
       methods: { ...(pluginRecord._plugin.methods ?? {}) },
       adapt: [...(pluginRecord._plugin.adapt ?? [])],
       stack: pluginRecord._plugin.stack ? { ...pluginRecord._plugin.stack } : undefined,
+      cause: pluginRecord._plugin.cause ? { ...pluginRecord._plugin.cause } : undefined,
     }
   }
 
@@ -803,6 +863,13 @@ export class Error0 extends Error {
     return this.use('stack', value)
   }
 
+  static cause<TThis extends typeof Error0>(
+    this: TThis,
+    value: ErrorPluginCauseOptions<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
+  ): ClassError0<PluginsMapOf<TThis>> {
+    return this.use('cause', value)
+  }
+
   static use<TThis extends typeof Error0, TBuilder extends PluginError0>(
     this: TThis,
     plugin: TBuilder,
@@ -835,10 +902,15 @@ export class Error0 extends Error {
     kind: 'stack',
     value: ErrorPluginStackOptions<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
   ): ClassError0<PluginsMapOf<TThis>>
+  static use<TThis extends typeof Error0>(
+    this: TThis,
+    kind: 'cause',
+    value: ErrorPluginCauseOptions<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
+  ): ClassError0<PluginsMapOf<TThis>>
   static use(
     this: typeof Error0,
-    first: PluginError0 | 'prop' | 'method' | 'adapt' | 'stack',
-    key?: string | ErrorPluginAdaptFn<any, any> | ErrorPluginStackOptions<any>,
+    first: PluginError0 | 'prop' | 'method' | 'adapt' | 'stack' | 'cause',
+    key?: string | ErrorPluginAdaptFn<any, any> | ErrorPluginStackOptions<any> | ErrorPluginCauseOptions<any>,
     value?: ErrorPluginPropOptions<unknown> | ErrorPluginMethodFn<unknown>,
   ): ClassError0 {
     if (first instanceof PluginError0) {
@@ -850,6 +922,18 @@ export class Error0 extends Error {
       }
       return this._useWithPlugin({
         stack: key as ErrorPluginStackOptions,
+      })
+    }
+    if (first === 'cause') {
+      if (!key || typeof key !== 'object') {
+        throw new Error('Error0.use("cause", value) requires cause options')
+      }
+      const { serialize, deserialize } = key as ErrorPluginCauseOptions
+      return this._useWithPlugin({
+        cause: {
+          serialize,
+          deserialize: typeof deserialize !== 'undefined' ? deserialize : !!serialize,
+        },
       })
     }
     if (first === 'adapt') {
@@ -909,16 +993,52 @@ export class Error0 extends Error {
         console.error(`Error0: failed to serialize property ${key}`, resolvedRecord)
       }
     }
-    if (plugin.stack?.serialize !== false) {
+    const stackSerialize = plugin.stack?.serialize
+    if (stackSerialize !== false) {
       try {
-        const serializedStack =
-          plugin.stack?.serialize?.({ value: error0.stack, error: error0, isPublic }) ?? error0.stack
+        let serializedStack: unknown
+        if (stackSerialize === 'merge') {
+          serializedStack = error0
+            .causes()
+            .map((cause) => {
+              return cause instanceof Error ? cause.stack : undefined
+            })
+            .filter((value): value is string => typeof value === 'string')
+            .join('\n')
+        } else if (typeof stackSerialize === 'function') {
+          serializedStack = stackSerialize({ value: error0.stack, error: error0, isPublic })
+        } else {
+          serializedStack = error0.stack
+        }
         if (serializedStack !== undefined) {
           json.stack = serializedStack
         }
       } catch {
         // eslint-disable-next-line no-console
         console.error('Error0: failed to serialize stack', error0)
+      }
+    }
+    const causeSerialize = plugin.cause?.serialize ?? false
+    if (causeSerialize) {
+      try {
+        if (causeSerialize === true) {
+          const causeValue = (error0 as { cause?: unknown }).cause
+          if (this.is(causeValue)) {
+            json.cause = this.serialize(causeValue, isPublic)
+          }
+        } else {
+          const serializedCause = causeSerialize({
+            value: (error0 as { cause?: unknown }).cause,
+            error: error0,
+            isPublic,
+          })
+          if (serializedCause !== undefined) {
+            json.cause = serializedCause
+          }
+        }
+      } catch {
+        // eslint-disable-next-line no-console
+        console.error('Error0: failed to serialize cause', error0)
       }
     }
     return Object.fromEntries(Object.entries(json).filter(([, value]) => value !== undefined)) as Record<
