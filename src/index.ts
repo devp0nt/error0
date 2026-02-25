@@ -8,11 +8,10 @@ export type ErrorPluginPropOptions<TInputValue, TOutputValue, TError extends Err
   serialize: (options: { value: TOutputValue; error: TError; isPublic: boolean }) => unknown
   deserialize: (options: { value: unknown; serialized: Record<string, unknown> }) => TOutputValue | undefined
 }
-export type ErrorPluginMethodFn<
-  TOutputValue,
-  TArgs extends unknown[] = unknown[],
-  TError extends Error0 = Error0,
-> = (error: TError, ...args: TArgs) => TOutputValue
+export type ErrorPluginMethodFn<TOutputValue, TArgs extends unknown[] = unknown[], TError extends Error0 = Error0> = (
+  error: TError,
+  ...args: TArgs
+) => TOutputValue
 export type ErrorPluginAdaptResult<TOutputProps extends Record<string, unknown>> = Partial<TOutputProps> | undefined
 export type ErrorPluginAdaptFn<
   TError extends Error0 = Error0,
@@ -34,12 +33,8 @@ export type ErrorPlugin<
   methods?: TMethods
   adapt?: Array<ErrorPluginAdaptFn<Error0, PluginOutputProps<TProps>>>
 }
-type AddPropToPluginProps<
-  TProps extends ErrorPluginProps,
-  TKey extends string,
-  TInputValue,
-  TOutputValue,
-> = TProps & Record<TKey, ErrorPluginPropOptions<TInputValue, TOutputValue>>
+type AddPropToPluginProps<TProps extends ErrorPluginProps, TKey extends string, TInputValue, TOutputValue> = TProps &
+  Record<TKey, ErrorPluginPropOptions<TInputValue, TOutputValue>>
 type AddMethodToPluginMethods<
   TMethods extends ErrorPluginMethods,
   TKey extends string,
@@ -145,16 +140,16 @@ type PluginsMapOf<TClass> = TClass extends { __pluginsMap?: infer TPluginsMap }
     : EmptyPluginsMap
   : EmptyPluginsMap
 
-type PluginsMapFromParts<TProps extends ErrorPluginProps, TMethods extends ErrorPluginMethods> = ErrorPluginsMapOfPlugin<
-  ErrorPlugin<TProps, TMethods>
->
+type PluginsMapFromParts<
+  TProps extends ErrorPluginProps,
+  TMethods extends ErrorPluginMethods,
+> = ErrorPluginsMapOfPlugin<ErrorPlugin<TProps, TMethods>>
 type ErrorInstanceOfMap<TMap extends ErrorPluginsMap> = Error0 & ErrorOutput<TMap>
 type BuilderError0<TProps extends ErrorPluginProps, TMethods extends ErrorPluginMethods> = Error0 &
   ErrorOutput<PluginsMapFromParts<TProps, TMethods>>
 
-type PluginOfBuilder<TBuilder> = TBuilder extends PluginError0<infer TProps, infer TMethods>
-  ? ErrorPlugin<TProps, TMethods>
-  : never
+type PluginOfBuilder<TBuilder> =
+  TBuilder extends PluginError0<infer TProps, infer TMethods> ? ErrorPlugin<TProps, TMethods> : never
 
 export class PluginError0<
   TProps extends ErrorPluginProps = Record<never, never>,
@@ -216,9 +211,7 @@ export class PluginError0<
   ): PluginError0<any, any> {
     const nextProps: ErrorPluginProps = { ...(this._plugin.props ?? {}) }
     const nextMethods: ErrorPluginMethods = { ...(this._plugin.methods ?? {}) }
-    const nextAdapt: Array<ErrorPluginAdaptFn<Error0, Record<string, unknown>>> = [
-      ...(this._plugin.adapt ?? []),
-    ]
+    const nextAdapt: Array<ErrorPluginAdaptFn<Error0, Record<string, unknown>>> = [...(this._plugin.adapt ?? [])]
     if (kind === 'prop') {
       const key = keyOrValue as string
       if (value === undefined) {
@@ -260,7 +253,9 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
     value: ErrorPluginAdaptFn<ErrorInstanceOfMap<TPluginsMap>, ErrorOutputProps<TPluginsMap>>,
   ) => ClassError0<TPluginsMap>
   use: {
-    <TBuilder extends PluginError0>(plugin: TBuilder): ClassError0<ExtendErrorPluginsMap<TPluginsMap, PluginOfBuilder<TBuilder>>>
+    <TBuilder extends PluginError0>(
+      plugin: TBuilder,
+    ): ClassError0<ExtendErrorPluginsMap<TPluginsMap, PluginOfBuilder<TBuilder>>>
     <TKey extends string, TInputValue, TOutputValue>(
       kind: 'prop',
       key: TKey,
