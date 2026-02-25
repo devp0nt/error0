@@ -65,6 +65,9 @@ export type ErrorPluginStack<TError extends Error0 = Error0> = {serialize: Error
 export type ErrorPluginCauseSerialize<TError extends Error0> =
   (options: { value: unknown; error: TError; isPublic: boolean }) => unknown
 export type ErrorPluginCause<TError extends Error0 = Error0> = {serialize: ErrorPluginCauseSerialize<TError>}
+export type ErrorPluginMessageSerialize<TError extends Error0> =
+  (options: { value: string; error: TError; isPublic: boolean }) => unknown
+export type ErrorPluginMessage<TError extends Error0 = Error0> = {serialize: ErrorPluginMessageSerialize<TError>}
 type ErrorMethodRecord = {
   args: unknown[]
   output: unknown
@@ -82,6 +85,7 @@ export type ErrorPlugin<
   adapt?: Array<ErrorPluginAdaptFn<Error0, PluginOutputProps<TProps>>>
   stack?: ErrorPluginStack
   cause?: ErrorPluginCause
+  message?: ErrorPluginMessage
 }
 type AddPropToPluginProps<
   TProps extends ErrorPluginProps,
@@ -166,8 +170,10 @@ type ErrorPluginResolved = {
   adapt: Array<ErrorPluginAdaptFn<Error0, Record<string, unknown>>>
   stack?: ErrorPluginStack
   cause?: ErrorPluginCause
+  message?: ErrorPluginMessage
 }
 const RESERVED_STACK_PROP_ERROR = 'Error0: "stack" is a reserved prop key. Use .stack(...) plugin API instead'
+const RESERVED_MESSAGE_PROP_ERROR = 'Error0: "message" is a reserved prop key. Use .message(...) plugin API instead'
 
 type PluginPropsMapOf<TPlugin extends ErrorPlugin> = {
   [TKey in keyof NonNullable<TPlugin['props']>]: NonNullable<TPlugin['props']>[TKey] extends ErrorPluginPropOptions<
@@ -259,6 +265,7 @@ export class PluginError0<
       adapt: [...(plugin?.adapt ?? [])],
       stack: plugin?.stack,
       cause: plugin?.cause,
+      message: plugin?.message,
     }
   }
 
@@ -295,6 +302,10 @@ export class PluginError0<
     return this.use('cause', value)
   }
 
+  message(value: ErrorPluginMessage<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods> {
+    return this.use('message', value)
+  }
+
   use<
     TKey extends string,
     TInputValue = undefined,
@@ -316,8 +327,9 @@ export class PluginError0<
   ): PluginError0<TProps, TMethods>
   use(kind: 'stack', value: ErrorPluginStack<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods>
   use(kind: 'cause', value: ErrorPluginCause<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods>
+  use(kind: 'message', value: ErrorPluginMessage<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods>
   use(
-    kind: 'prop' | 'method' | 'adapt' | 'stack' | 'cause',
+    kind: 'prop' | 'method' | 'adapt' | 'stack' | 'cause' | 'message',
     keyOrValue: unknown,
     value?: ErrorPluginPropOptions<unknown, unknown, any> | ErrorPluginMethodFn<unknown, unknown[], any>,
   ): PluginError0<any, any> {
@@ -326,10 +338,14 @@ export class PluginError0<
     const nextAdapt: Array<ErrorPluginAdaptFn<Error0, Record<string, unknown>>> = [...(this._plugin.adapt ?? [])]
     let nextStack: ErrorPluginStack | undefined = this._plugin.stack
     let nextCause: ErrorPluginCause | undefined = this._plugin.cause
+    let nextMessage: ErrorPluginMessage | undefined = this._plugin.message
     if (kind === 'prop') {
       const key = keyOrValue as string
       if (key === 'stack') {
         throw new Error(RESERVED_STACK_PROP_ERROR)
+      }
+      if (key === 'message') {
+        throw new Error(RESERVED_MESSAGE_PROP_ERROR)
       }
       if (value === undefined) {
         throw new Error('PluginError0.use("prop", key, value) requires value')
@@ -345,8 +361,10 @@ export class PluginError0<
       nextAdapt.push(keyOrValue as ErrorPluginAdaptFn<Error0, Record<string, unknown>>)
     } else if (kind === 'stack') {
       nextStack = keyOrValue as ErrorPluginStack
-    } else {
+    } else if (kind === 'cause') {
       nextCause = keyOrValue as ErrorPluginCause
+    } else {
+      nextMessage = keyOrValue as ErrorPluginMessage
     }
     return new PluginError0({
       props: nextProps,
@@ -354,6 +372,7 @@ export class PluginError0<
       adapt: nextAdapt,
       stack: nextStack,
       cause: nextCause,
+      message: nextMessage,
     })
   }
 }
@@ -423,6 +442,7 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
     ): ClassError0<TPluginsMap>
     (kind: 'stack', value: ErrorPluginStack<ErrorInstanceOfMap<TPluginsMap>>): ClassError0<TPluginsMap>
     (kind: 'cause', value: ErrorPluginCause<ErrorInstanceOfMap<TPluginsMap>>): ClassError0<TPluginsMap>
+    (kind: 'message', value: ErrorPluginMessage<ErrorInstanceOfMap<TPluginsMap>>): ClassError0<TPluginsMap>
   }
   plugin: () => PluginError0
 } & ErrorStaticMethods<TPluginsMap>
@@ -437,6 +457,7 @@ export class Error0 extends Error {
     adapt: [],
     stack: undefined,
     cause: undefined,
+    message: undefined,
   }
 
   private static _getResolvedPlugin(this: typeof Error0): ErrorPluginResolved {
@@ -449,6 +470,9 @@ export class Error0 extends Error {
       if (plugin.props && 'stack' in plugin.props) {
         throw new Error(RESERVED_STACK_PROP_ERROR)
       }
+      if (plugin.props && 'message' in plugin.props) {
+        throw new Error(RESERVED_MESSAGE_PROP_ERROR)
+      }
       Object.assign(resolved.props, plugin.props ?? this._emptyPlugin.props)
       Object.assign(resolved.methods, plugin.methods ?? this._emptyPlugin.methods)
       resolved.adapt.push(...(plugin.adapt ?? this._emptyPlugin.adapt))
@@ -457,6 +481,9 @@ export class Error0 extends Error {
       }
       if (typeof plugin.cause !== 'undefined') {
         resolved.cause = plugin.cause
+      }
+      if (typeof plugin.message !== 'undefined') {
+        resolved.message = plugin.message
       }
     }
     return resolved
@@ -789,6 +816,7 @@ export class Error0 extends Error {
       adapt: [...(pluginRecord._plugin.adapt ?? [])],
       stack: pluginRecord._plugin.stack,
       cause: pluginRecord._plugin.cause,
+      message: pluginRecord._plugin.message,
     }
   }
 
@@ -872,9 +900,14 @@ export class Error0 extends Error {
     kind: 'cause',
     value: ErrorPluginCause<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
   ): ClassError0<PluginsMapOf<TThis>>
+  static use<TThis extends typeof Error0>(
+    this: TThis,
+    kind: 'message',
+    value: ErrorPluginMessage<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
+  ): ClassError0<PluginsMapOf<TThis>>
   static use(
     this: typeof Error0,
-    first: PluginError0 | 'prop' | 'method' | 'adapt' | 'stack' | 'cause',
+    first: PluginError0 | 'prop' | 'method' | 'adapt' | 'stack' | 'cause' | 'message',
     key?: unknown,
     value?: ErrorPluginPropOptions<unknown> | ErrorPluginMethodFn<unknown>,
   ): ClassError0 {
@@ -903,6 +936,17 @@ export class Error0 extends Error {
         cause: key as ErrorPluginCause,
       })
     }
+    if (first === 'message') {
+      if (typeof key === 'undefined') {
+        throw new Error('Error0.use("message", value) requires message plugin value')
+      }
+      if (typeof key !== 'object' || key === null || typeof (key as { serialize?: unknown }).serialize !== 'function') {
+        throw new Error('Error0.use("message", value) expects { serialize: function }')
+      }
+      return this._useWithPlugin({
+        message: key as ErrorPluginMessage,
+      })
+    }
     if (first === 'adapt') {
       if (typeof key !== 'function') {
         throw new Error('Error0.use("adapt", value) requires adapt function')
@@ -918,6 +962,9 @@ export class Error0 extends Error {
     if (first === 'prop') {
       if (key === 'stack') {
         throw new Error(RESERVED_STACK_PROP_ERROR)
+      }
+      if (key === 'message') {
+        throw new Error(RESERVED_MESSAGE_PROP_ERROR)
       }
       return this._useWithPlugin({
         props: { [key]: value as ErrorPluginPropOptions<unknown> },
@@ -936,14 +983,25 @@ export class Error0 extends Error {
     const error0 = this.from(error)
     const resolvedProps = this.resolve(error0)
     const resolvedRecord = resolvedProps as Record<string, unknown>
+    const plugin = this._getResolvedPlugin()
+    const messagePlugin = plugin.message
+    let serializedMessage: unknown = error0.message
+    try {
+      if (messagePlugin) {
+        serializedMessage = messagePlugin.serialize({ value: error0.message, error: error0, isPublic })
+      }
+    } catch {
+      // eslint-disable-next-line no-console
+      console.error('Error0: failed to serialize message', error0)
+      serializedMessage = error0.message
+    }
     const json: Record<string, unknown> = {
       name: error0.name,
-      message: error0.message,
+      message: serializedMessage,
       // we do not serialize causes, it is enough that we have floated props and adapt helper
       // cause: error0.cause,
     }
 
-    const plugin = this._getResolvedPlugin()
     const propsEntries = Object.entries(plugin.props)
     for (const [key, prop] of propsEntries) {
       if (prop.serialize === false) {

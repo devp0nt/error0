@@ -210,6 +210,10 @@ describe('Error0', () => {
     expect(() => Error0.use('stack', true as any)).toThrow('expects { serialize: function }')
   })
 
+  it('message plugin rejects boolean config', () => {
+    expect(() => Error0.use('message', true as any)).toThrow('expects { serialize: function }')
+  })
+
   it('prop("stack") throws and suggests using stack plugin', () => {
     expect(() =>
       Error0.use('prop', 'stack', {
@@ -226,6 +230,26 @@ describe('Error0', () => {
       Error0.plugin().prop('stack', {
         init: (input: string) => input,
         resolve: ({ own }) => (typeof own === 'string' ? own : undefined),
+        serialize: ({ value }) => value,
+        deserialize: ({ value }) => (typeof value === 'string' ? value : undefined),
+      }),
+    ).toThrow('reserved prop key')
+  })
+
+  it('prop("message") throws and suggests using message plugin', () => {
+    expect(() =>
+      Error0.use('prop', 'message', {
+        resolve: ({ own }) => own as string,
+        serialize: ({ value }) => value,
+        deserialize: ({ value }) => (typeof value === 'string' ? value : undefined),
+      }),
+    ).toThrow('reserved prop key')
+  })
+
+  it('plugin builder also rejects prop("message") as reserved key', () => {
+    expect(() =>
+      Error0.plugin().prop('message', {
+        resolve: ({ own }) => own as string,
         serialize: ({ value }) => value,
         deserialize: ({ value }) => (typeof value === 'string' ? value : undefined),
       }),
@@ -534,10 +558,15 @@ describe('Error0', () => {
   it('messages can be combined on serialization', () => {
     const AppError = Error0.use(statusPlugin)
       .use(codePlugin)
-      .use('prop', 'message', {
-        resolve: ({ own }) => own as string,
-        serialize: ({ value, error }) => error.flow('message').join(': '),
-        deserialize: ({ value }) => (typeof value === 'string' ? value : undefined),
+      .use('message', {
+        serialize: ({ error }) =>
+          error
+            .causes()
+            .map((cause) => {
+              return cause instanceof Error ? cause.message : undefined
+            })
+            .filter((value): value is string => typeof value === 'string')
+            .join(': '),
       })
     const error1 = new AppError('test1', { status: 400, code: 'NOT_FOUND' })
     const error2 = new AppError({ message: 'test2', status: 401, cause: error1 })
