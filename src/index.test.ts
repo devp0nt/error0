@@ -1,8 +1,8 @@
 import { describe, expect, expectTypeOf, it } from 'bun:test'
+import * as assert from 'node:assert'
+import z, { ZodError } from 'zod'
 import type { ClassError0 } from './index.js'
 import { Error0 } from './index.js'
-import z, { ZodError } from 'zod'
-import * as assert from 'node:assert'
 
 const fixStack = (stack: string | undefined) => {
   if (!stack) {
@@ -355,6 +355,36 @@ describe('Error0', () => {
     expectTypeOf(AppError.flow(error, 'code')).toEqualTypeOf<Array<Code | undefined>>()
   })
 
+  it('resolve returns plain resolved props object without methods', () => {
+    type Code = 'A' | 'B'
+    const isCode = (item: unknown): item is Code => item === 'A' || item === 'B'
+    const AppError = Error0.prop('status', {
+      init: (input: number) => input,
+      resolve: ({ flow }) => flow.find((item) => typeof item === 'number') ?? 500,
+      serialize: ({ value }) => value,
+      deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
+    })
+      .prop('code', {
+        init: (input: Code) => input,
+        resolve: ({ flow }) => flow.find(isCode),
+        serialize: ({ value }) => value,
+        deserialize: ({ value }) => (value === 'A' || value === 'B' ? value : undefined),
+      })
+      .method('isStatus', (error, status: number) => error.status === status)
+
+    const root = new AppError('root', { status: 400, code: 'A' })
+    const leaf = new AppError('leaf', { cause: root })
+
+    const resolvedStatic = AppError.resolve(leaf)
+    const resolvedInstance = leaf.resolve()
+    expect(resolvedStatic).toEqual({ status: 400, code: 'A' })
+    expect(resolvedInstance).toEqual({ status: 400, code: 'A' })
+    expect('isStatus' in resolvedStatic).toBe(false)
+    expect(Object.keys(resolvedInstance)).toEqual(['status', 'code'])
+
+    expectTypeOf(resolvedStatic).toEqualTypeOf<{ status: number; code: Code | undefined }>()
+  })
+
   it('prop resolved type can be not undefined with init not provided', () => {
     const AppError = Error0.prop('x', {
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number') || 500,
@@ -482,6 +512,48 @@ describe('Error0', () => {
     expect(errorWithExpectedErrorAsCause.isExpected()).toBe(true)
     expect(errorWithUnexpectedErrorAsCause.expected).toBe(false)
     expect(errorWithUnexpectedErrorAsCause.isExpected()).toBe(false)
+  })
+
+  it('messages can be combined on serialization', () => {
+    const AppError = Error0.use(statusPlugin)
+      .use(codePlugin)
+      .prop('message', {
+        resolve: ({ own }) => own as string,
+        serialize: ({ value, error }) => error.flow('message').join(': '),
+        deserialize: ({ value }) => (typeof value === 'string' ? value : undefined),
+      })
+    const error1 = new AppError('test1', { status: 400, code: 'NOT_FOUND' })
+    const error2 = new AppError({ message: 'test2', status: 401, cause: error1 })
+    expect(error1.message).toEqual('test1')
+    expect(error2.message).toEqual('test2')
+    expect((error2.cause as any)?.message).toEqual('test1')
+    expect(error1.serialize().message).toEqual('test1')
+    expect(error2.serialize().message).toEqual('test2: test1')
+  })
+
+  it.only('Error0.mergeStacks(causes: unknown[]) really merge stacks nicely in one long stack', () => {
+    const AppError = Error0.use(statusPlugin)
+      .use(codePlugin)
+      .stack({
+        serialize: ({ value, error }) =>
+          error
+            .causes()
+            .map((cause) => {
+              // const stack = (cause as any).stack
+              // console.log(123, cause)
+              const stack = Error0.own(cause, 'stack' as never) as string | undefined
+              console.log(444, stack)
+              return stack
+            })
+            .join('\n'),
+      })
+    const error1 = new AppError('test1', { status: 400, code: 'NOT_FOUND' })
+    const error2 = new AppError('test2', { status: 401, cause: error1 })
+    const mergedStack1 = error1.serialize().stack as string
+    const mergedStack2 = error2.serialize().stack as string
+    console.log(error1)
+    expect(mergedStack1).toMatchInlineSnapshot()
+    expect(mergedStack2).toMatchInlineSnapshot()
   })
 
   // we will have no variants
