@@ -13,11 +13,11 @@ export type ErrorPluginMethodFn<
   TArgs extends unknown[] = unknown[],
   TError extends Error0 = Error0,
 > = (error: TError, ...args: TArgs) => TOutputValue
-export type ErrorPluginRefineResult<TOutputProps extends Record<string, unknown>> = Partial<TOutputProps> | undefined
-export type ErrorPluginRefineFn<
+export type ErrorPluginAdaptResult<TOutputProps extends Record<string, unknown>> = Partial<TOutputProps> | undefined
+export type ErrorPluginAdaptFn<
   TError extends Error0 = Error0,
   TOutputProps extends Record<string, unknown> = Record<never, never>,
-> = ((error: TError) => void) | ((error: TError) => ErrorPluginRefineResult<TOutputProps>)
+> = ((error: TError) => void) | ((error: TError) => ErrorPluginAdaptResult<TOutputProps>)
 type ErrorMethodRecord = {
   args: unknown[]
   output: unknown
@@ -32,7 +32,7 @@ export type ErrorPlugin<
 > = {
   props?: TProps
   methods?: TMethods
-  refine?: Array<ErrorPluginRefineFn<Error0, PluginOutputProps<TProps>>>
+  adapt?: Array<ErrorPluginAdaptFn<Error0, PluginOutputProps<TProps>>>
 }
 type AddPropToPluginProps<
   TProps extends ErrorPluginProps,
@@ -96,7 +96,7 @@ type EmptyPluginsMap = {
 type ErrorPluginResolved = {
   props: Record<string, ErrorPluginPropOptions<unknown, unknown>>
   methods: Record<string, ErrorPluginMethodFn<unknown>>
-  refine: Array<ErrorPluginRefineFn<Error0, Record<string, unknown>>>
+  adapt: Array<ErrorPluginAdaptFn<Error0, Record<string, unknown>>>
 }
 
 type PluginPropsMapOf<TPlugin extends ErrorPlugin> = {
@@ -171,7 +171,7 @@ export class PluginError0<
     this._plugin = {
       props: { ...(plugin?.props ?? {}) },
       methods: { ...(plugin?.methods ?? {}) },
-      refine: [...(plugin?.refine ?? [])],
+      adapt: [...(plugin?.adapt ?? [])],
     }
   }
 
@@ -189,10 +189,10 @@ export class PluginError0<
     return this.use('method', key, value)
   }
 
-  refine(
-    value: ErrorPluginRefineFn<BuilderError0<TProps, TMethods>, PluginOutputProps<TProps>>,
+  adapt(
+    value: ErrorPluginAdaptFn<BuilderError0<TProps, TMethods>, PluginOutputProps<TProps>>,
   ): PluginError0<TProps, TMethods> {
-    return this.use('refine', value)
+    return this.use('adapt', value)
   }
 
   use<TKey extends string, TInputValue, TOutputValue>(
@@ -206,18 +206,18 @@ export class PluginError0<
     value: ErrorPluginMethodFn<TOutputValue, TArgs, BuilderError0<TProps, TMethods>>,
   ): PluginError0<TProps, AddMethodToPluginMethods<TMethods, TKey, TArgs, TOutputValue>>
   use(
-    kind: 'refine',
-    value: ErrorPluginRefineFn<BuilderError0<TProps, TMethods>, PluginOutputProps<TProps>>,
+    kind: 'adapt',
+    value: ErrorPluginAdaptFn<BuilderError0<TProps, TMethods>, PluginOutputProps<TProps>>,
   ): PluginError0<TProps, TMethods>
   use(
-    kind: 'prop' | 'method' | 'refine',
-    keyOrValue: string | ErrorPluginRefineFn<any, any>,
+    kind: 'prop' | 'method' | 'adapt',
+    keyOrValue: string | ErrorPluginAdaptFn<any, any>,
     value?: ErrorPluginPropOptions<unknown, unknown, any> | ErrorPluginMethodFn<unknown, unknown[], any>,
   ): PluginError0<any, any> {
     const nextProps: ErrorPluginProps = { ...(this._plugin.props ?? {}) }
     const nextMethods: ErrorPluginMethods = { ...(this._plugin.methods ?? {}) }
-    const nextRefine: Array<ErrorPluginRefineFn<Error0, Record<string, unknown>>> = [
-      ...(this._plugin.refine ?? []),
+    const nextAdapt: Array<ErrorPluginAdaptFn<Error0, Record<string, unknown>>> = [
+      ...(this._plugin.adapt ?? []),
     ]
     if (kind === 'prop') {
       const key = keyOrValue as string
@@ -232,12 +232,12 @@ export class PluginError0<
       }
       nextMethods[key] = value as ErrorPluginMethodFn<any, any[]>
     } else {
-      nextRefine.push(keyOrValue as ErrorPluginRefineFn<Error0, Record<string, unknown>>)
+      nextAdapt.push(keyOrValue as ErrorPluginAdaptFn<Error0, Record<string, unknown>>)
     }
     return new PluginError0({
       props: nextProps,
       methods: nextMethods,
-      refine: nextRefine,
+      adapt: nextAdapt,
     })
   }
 }
@@ -256,8 +256,8 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
     key: TKey,
     value: ErrorPluginMethodFn<TOutputValue, TArgs, ErrorInstanceOfMap<TPluginsMap>>,
   ) => ClassError0<ExtendErrorPluginsMapWithMethod<TPluginsMap, TKey, TArgs, TOutputValue>>
-  refine: (
-    value: ErrorPluginRefineFn<ErrorInstanceOfMap<TPluginsMap>, ErrorOutputProps<TPluginsMap>>,
+  adapt: (
+    value: ErrorPluginAdaptFn<ErrorInstanceOfMap<TPluginsMap>, ErrorOutputProps<TPluginsMap>>,
   ) => ClassError0<TPluginsMap>
   use: {
     <TBuilder extends PluginError0>(plugin: TBuilder): ClassError0<ExtendErrorPluginsMap<TPluginsMap, PluginOfBuilder<TBuilder>>>
@@ -272,8 +272,8 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
       value: ErrorPluginMethodFn<TOutputValue, TArgs, ErrorInstanceOfMap<TPluginsMap>>,
     ): ClassError0<ExtendErrorPluginsMapWithMethod<TPluginsMap, TKey, TArgs, TOutputValue>>
     (
-      kind: 'refine',
-      value: ErrorPluginRefineFn<ErrorInstanceOfMap<TPluginsMap>, ErrorOutputProps<TPluginsMap>>,
+      kind: 'adapt',
+      value: ErrorPluginAdaptFn<ErrorInstanceOfMap<TPluginsMap>, ErrorOutputProps<TPluginsMap>>,
     ): ClassError0<TPluginsMap>
   }
   plugin: () => PluginError0
@@ -286,19 +286,19 @@ export class Error0 extends Error {
   private static readonly _emptyPlugin: ErrorPluginResolved = {
     props: {},
     methods: {},
-    refine: [],
+    adapt: [],
   }
 
   private static _getResolvedPlugin(this: typeof Error0): ErrorPluginResolved {
     const resolved: ErrorPluginResolved = {
       props: {},
       methods: {},
-      refine: [],
+      adapt: [],
     }
     for (const plugin of this._plugins) {
       Object.assign(resolved.props, plugin.props ?? this._emptyPlugin.props)
       Object.assign(resolved.methods, plugin.methods ?? this._emptyPlugin.methods)
-      resolved.refine.push(...(plugin.refine ?? this._emptyPlugin.refine))
+      resolved.adapt.push(...(plugin.adapt ?? this._emptyPlugin.adapt))
     }
     return resolved
   }
@@ -425,12 +425,12 @@ export class Error0 extends Error {
     return this._fromNonError0(error)
   }
 
-  private static _applyRefine(error: Error0): Error0 {
+  private static _applyAdapt(error: Error0): Error0 {
     const plugin = this._getResolvedPlugin()
-    for (const refine of plugin.refine) {
-      const refined = refine(error as any)
-      if (refined && typeof refined === 'object') {
-        Object.assign(error as unknown as Record<string, unknown>, refined)
+    for (const adapt of plugin.adapt) {
+      const adapted = adapt(error as any)
+      if (adapted && typeof adapted === 'object') {
+        Object.assign(error as unknown as Record<string, unknown>, adapted)
       }
     }
     return error
@@ -439,7 +439,7 @@ export class Error0 extends Error {
   private static _fromSerialized(error: unknown): Error0 {
     const message = this._extractMessage(error)
     if (typeof error !== 'object' || error === null) {
-      return this._applyRefine(new this(message, { cause: error }))
+      return this._applyAdapt(new this(message, { cause: error }))
     }
     const errorRecord = error as Record<string, unknown>
     const recreated = new this(message)
@@ -467,7 +467,7 @@ export class Error0 extends Error {
 
   private static _fromNonError0(error: unknown): Error0 {
     const message = this._extractMessage(error)
-    return this._applyRefine(new this(message, { cause: error }))
+    return this._applyAdapt(new this(message, { cause: error }))
   }
 
   private static _extractMessage(error: unknown): string {
@@ -518,7 +518,7 @@ export class Error0 extends Error {
     return {
       props: { ...(pluginRecord._plugin.props ?? {}) },
       methods: { ...(pluginRecord._plugin.methods ?? {}) },
-      refine: [...(pluginRecord._plugin.refine ?? [])],
+      adapt: [...(pluginRecord._plugin.adapt ?? [])],
     }
   }
 
@@ -538,11 +538,11 @@ export class Error0 extends Error {
     return this.use('method', key, value)
   }
 
-  static refine<TThis extends typeof Error0>(
+  static adapt<TThis extends typeof Error0>(
     this: TThis,
-    value: ErrorPluginRefineFn<ErrorInstanceOfMap<PluginsMapOf<TThis>>, ErrorOutputProps<PluginsMapOf<TThis>>>,
+    value: ErrorPluginAdaptFn<ErrorInstanceOfMap<PluginsMapOf<TThis>>, ErrorOutputProps<PluginsMapOf<TThis>>>,
   ): ClassError0<PluginsMapOf<TThis>> {
-    return this.use('refine', value)
+    return this.use('adapt', value)
   }
 
   static use<TThis extends typeof Error0, TBuilder extends PluginError0>(
@@ -563,24 +563,24 @@ export class Error0 extends Error {
   ): ClassError0<ExtendErrorPluginsMapWithMethod<PluginsMapOf<TThis>, TKey, TArgs, TOutputValue>>
   static use<TThis extends typeof Error0>(
     this: TThis,
-    kind: 'refine',
-    value: ErrorPluginRefineFn<ErrorInstanceOfMap<PluginsMapOf<TThis>>, ErrorOutputProps<PluginsMapOf<TThis>>>,
+    kind: 'adapt',
+    value: ErrorPluginAdaptFn<ErrorInstanceOfMap<PluginsMapOf<TThis>>, ErrorOutputProps<PluginsMapOf<TThis>>>,
   ): ClassError0<PluginsMapOf<TThis>>
   static use(
     this: typeof Error0,
-    first: PluginError0 | 'prop' | 'method' | 'refine',
-    key?: string | ErrorPluginRefineFn<any, any>,
+    first: PluginError0 | 'prop' | 'method' | 'adapt',
+    key?: string | ErrorPluginAdaptFn<any, any>,
     value?: ErrorPluginPropOptions<unknown, unknown> | ErrorPluginMethodFn<unknown>,
   ): ClassError0 {
     if (first instanceof PluginError0) {
       return this._useWithPlugin(this._pluginFromBuilder(first))
     }
-    if (first === 'refine') {
+    if (first === 'adapt') {
       if (typeof key !== 'function') {
-        throw new Error('Error0.use("refine", value) requires refine function')
+        throw new Error('Error0.use("adapt", value) requires adapt function')
       }
       return this._useWithPlugin({
-        refine: [key],
+        adapt: [key],
       })
     }
     if (typeof key !== 'string' || value === undefined) {
@@ -606,7 +606,7 @@ export class Error0 extends Error {
     const json: Record<string, unknown> = {
       name: error0.name,
       message: error0.message,
-      // we do not serialize causes, it is enough that we have floated props and refine helper
+      // we do not serialize causes, it is enough that we have floated props and adapt helper
       // cause: error0.cause,
     }
 

@@ -73,7 +73,7 @@ describe('Error0', () => {
     expectTypeOf<typeof AppError>().toExtend<ClassError0>()
   })
 
-  it('class helpers prop/method/refine mirror use API', () => {
+  it('class helpers prop/method/adapt mirror use API', () => {
     const AppError = Error0.prop('status', {
       init: (value: number) => value,
       resolve: ({ value, flow }) => {
@@ -83,7 +83,7 @@ describe('Error0', () => {
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
     })
       .method('isStatus', (error, expectedStatus: number) => error.status === expectedStatus)
-      .refine((error) => {
+      .adapt((error) => {
         if (error.cause instanceof Error && error.status === undefined) {
           return { status: 500 }
         }
@@ -237,7 +237,7 @@ describe('Error0', () => {
     expect(error.message).toBe(parsedError.message)
   })
 
-  it('refine message and other props via direct transformations', () => {
+  it('adapt message and other props via direct transformations', () => {
     const schema = z.object({
       x: z.string(),
     })
@@ -246,7 +246,7 @@ describe('Error0', () => {
     assert.ok(parsedError)
     const AppError = Error0.use(statusPlugin)
       .use(codePlugin)
-      .use('refine', (error) => {
+      .use('adapt', (error) => {
         if (error.cause instanceof ZodError) {
           error.status = 422
           error.code = 'NOT_FOUND'
@@ -263,7 +263,7 @@ describe('Error0', () => {
     expect(error1.code).toBe(undefined)
   })
 
-  it('refine message and other props via return output values from plugin', () => {
+  it('adapt message and other props via return output values from plugin', () => {
     const schema = z.object({
       x: z.string(),
     })
@@ -272,7 +272,7 @@ describe('Error0', () => {
     assert.ok(parsedError)
     const AppError = Error0.use(statusPlugin)
       .use(codePlugin)
-      .use('refine', (error) => {
+      .adapt((error) => {
         if (error.cause instanceof ZodError) {
           error.message = `Validation Error: ${error.message}`
           return {
@@ -322,7 +322,7 @@ describe('Error0', () => {
 
   // we will have no variants
   // becouse you can thorw any errorm and when you do AppError.from(yourError)
-  // can use refine to assign desired props to error, it is enough for transport
+  // can use adapt to assign desired props to error, it is enough for transport
   // you even can create computed or method to retrieve your error, so no problems with variants
 
   // it('can create and recongnize variant', () => {
