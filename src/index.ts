@@ -63,23 +63,11 @@ export type ErrorPluginStackSerialize<TError extends Error0> =
   | ((options: { value: string | undefined; error: TError; isPublic: boolean }) => unknown)
   | boolean
   | 'merge'
-export type ErrorPluginStackDeserialize =
-  | ((options: { value: unknown; serialized: Record<string, unknown> }) => string | undefined)
-  | boolean
-export type ErrorPluginStackOptions<TError extends Error0 = Error0> = {
-  serialize?: ErrorPluginStackSerialize<TError>
-  deserialize?: ErrorPluginStackDeserialize
-}
+export type ErrorPluginStack<TError extends Error0 = Error0> = ErrorPluginStackSerialize<TError>
 export type ErrorPluginCauseSerialize<TError extends Error0> =
   | ((options: { value: unknown; error: TError; isPublic: boolean }) => unknown)
   | boolean
-export type ErrorPluginCauseDeserialize =
-  | ((options: { value: unknown; serialized: Record<string, unknown> }) => unknown)
-  | boolean
-export type ErrorPluginCauseOptions<TError extends Error0 = Error0> = {
-  serialize?: ErrorPluginCauseSerialize<TError>
-  deserialize?: ErrorPluginCauseDeserialize
-}
+export type ErrorPluginCause<TError extends Error0 = Error0> = ErrorPluginCauseSerialize<TError>
 type ErrorMethodRecord = {
   args: unknown[]
   output: unknown
@@ -95,8 +83,8 @@ export type ErrorPlugin<
   props?: TProps
   methods?: TMethods
   adapt?: Array<ErrorPluginAdaptFn<Error0, PluginOutputProps<TProps>>>
-  stack?: ErrorPluginStackOptions
-  cause?: ErrorPluginCauseOptions
+  stack?: ErrorPluginStack
+  cause?: ErrorPluginCause
 }
 type AddPropToPluginProps<
   TProps extends ErrorPluginProps,
@@ -179,8 +167,8 @@ type ErrorPluginResolved = {
   props: Record<string, ErrorPluginPropOptions<unknown>>
   methods: Record<string, ErrorPluginMethodFn<unknown>>
   adapt: Array<ErrorPluginAdaptFn<Error0, Record<string, unknown>>>
-  stack?: ErrorPluginStackOptions
-  cause?: ErrorPluginCauseOptions
+  stack?: ErrorPluginStack
+  cause?: ErrorPluginCause
 }
 const RESERVED_STACK_PROP_ERROR = 'Error0: "stack" is a reserved prop key. Use .stack(...) plugin API instead'
 
@@ -302,11 +290,11 @@ export class PluginError0<
     return this.use('adapt', value)
   }
 
-  stack(value: ErrorPluginStackOptions<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods> {
+  stack(value: ErrorPluginStack<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods> {
     return this.use('stack', value)
   }
 
-  cause(value: ErrorPluginCauseOptions<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods> {
+  cause(value: ErrorPluginCause<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods> {
     return this.use('cause', value)
   }
 
@@ -329,18 +317,18 @@ export class PluginError0<
     kind: 'adapt',
     value: ErrorPluginAdaptFn<BuilderError0<TProps, TMethods>, PluginOutputProps<TProps>>,
   ): PluginError0<TProps, TMethods>
-  use(kind: 'stack', value: ErrorPluginStackOptions<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods>
-  use(kind: 'cause', value: ErrorPluginCauseOptions<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods>
+  use(kind: 'stack', value: ErrorPluginStack<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods>
+  use(kind: 'cause', value: ErrorPluginCause<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods>
   use(
     kind: 'prop' | 'method' | 'adapt' | 'stack' | 'cause',
-    keyOrValue: string | ErrorPluginAdaptFn<any, any> | ErrorPluginStackOptions<any> | ErrorPluginCauseOptions<any>,
+    keyOrValue: unknown,
     value?: ErrorPluginPropOptions<unknown, unknown, any> | ErrorPluginMethodFn<unknown, unknown[], any>,
   ): PluginError0<any, any> {
     const nextProps: ErrorPluginProps = { ...(this._plugin.props ?? {}) }
     const nextMethods: ErrorPluginMethods = { ...(this._plugin.methods ?? {}) }
     const nextAdapt: Array<ErrorPluginAdaptFn<Error0, Record<string, unknown>>> = [...(this._plugin.adapt ?? [])]
-    let nextStack: ErrorPluginStackOptions | undefined = this._plugin.stack
-    let nextCause: ErrorPluginCauseOptions | undefined = this._plugin.cause
+    let nextStack: ErrorPluginStack | undefined = this._plugin.stack
+    let nextCause: ErrorPluginCause | undefined = this._plugin.cause
     if (kind === 'prop') {
       const key = keyOrValue as string
       if (key === 'stack') {
@@ -359,17 +347,9 @@ export class PluginError0<
     } else if (kind === 'adapt') {
       nextAdapt.push(keyOrValue as ErrorPluginAdaptFn<Error0, Record<string, unknown>>)
     } else if (kind === 'stack') {
-      const { serialize, deserialize } = keyOrValue as ErrorPluginStackOptions
-      nextStack = {
-        serialize,
-        deserialize: typeof deserialize !== 'undefined' ? deserialize : !!serialize,
-      }
+      nextStack = keyOrValue as ErrorPluginStack
     } else {
-      const { serialize, deserialize } = keyOrValue as ErrorPluginCauseOptions
-      nextCause = {
-        serialize,
-        deserialize: typeof deserialize !== 'undefined' ? deserialize : !!serialize,
-      }
+      nextCause = keyOrValue as ErrorPluginCause
     }
     return new PluginError0({
       props: nextProps,
@@ -419,8 +399,8 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
   adapt: (
     value: ErrorPluginAdaptFn<ErrorInstanceOfMap<TPluginsMap>, ErrorResolvedProps<TPluginsMap>>,
   ) => ClassError0<TPluginsMap>
-  stack: (value: ErrorPluginStackOptions<ErrorInstanceOfMap<TPluginsMap>>) => ClassError0<TPluginsMap>
-  cause: (value: ErrorPluginCauseOptions<ErrorInstanceOfMap<TPluginsMap>>) => ClassError0<TPluginsMap>
+  stack: (value: ErrorPluginStack<ErrorInstanceOfMap<TPluginsMap>>) => ClassError0<TPluginsMap>
+  cause: (value: ErrorPluginCause<ErrorInstanceOfMap<TPluginsMap>>) => ClassError0<TPluginsMap>
   use: {
     <TBuilder extends PluginError0>(
       plugin: TBuilder,
@@ -444,8 +424,8 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
       kind: 'adapt',
       value: ErrorPluginAdaptFn<ErrorInstanceOfMap<TPluginsMap>, ErrorResolvedProps<TPluginsMap>>,
     ): ClassError0<TPluginsMap>
-    (kind: 'stack', value: ErrorPluginStackOptions<ErrorInstanceOfMap<TPluginsMap>>): ClassError0<TPluginsMap>
-    (kind: 'cause', value: ErrorPluginCauseOptions<ErrorInstanceOfMap<TPluginsMap>>): ClassError0<TPluginsMap>
+    (kind: 'stack', value: ErrorPluginStack<ErrorInstanceOfMap<TPluginsMap>>): ClassError0<TPluginsMap>
+    (kind: 'cause', value: ErrorPluginCause<ErrorInstanceOfMap<TPluginsMap>>): ClassError0<TPluginsMap>
   }
   plugin: () => PluginError0
 } & ErrorStaticMethods<TPluginsMap>
@@ -475,10 +455,10 @@ export class Error0 extends Error {
       Object.assign(resolved.props, plugin.props ?? this._emptyPlugin.props)
       Object.assign(resolved.methods, plugin.methods ?? this._emptyPlugin.methods)
       resolved.adapt.push(...(plugin.adapt ?? this._emptyPlugin.adapt))
-      if (plugin.stack) {
+      if (typeof plugin.stack !== 'undefined') {
         resolved.stack = plugin.stack
       }
-      if (plugin.cause) {
+      if (typeof plugin.cause !== 'undefined') {
         resolved.cause = plugin.cause
       }
     }
@@ -730,35 +710,24 @@ export class Error0 extends Error {
     }
     // we do not serialize causes
     // ;(recreated as unknown as { cause?: unknown }).cause = errorRecord.cause
-    const stackDeserialize = plugin.stack?.deserialize
-    if (stackDeserialize !== false && 'stack' in errorRecord) {
+    const stackPlugin = plugin.stack
+    if (stackPlugin !== false && 'stack' in errorRecord) {
       try {
-        const deserializedStack =
-          (typeof stackDeserialize === 'function'
-            ? stackDeserialize({ value: errorRecord.stack, serialized: errorRecord })
-            : typeof errorRecord.stack === 'string'
-              ? errorRecord.stack
-              : undefined) ?? (typeof errorRecord.stack === 'string' ? errorRecord.stack : undefined)
-        if (typeof deserializedStack === 'string') {
-          recreated.stack = deserializedStack
+        if (typeof errorRecord.stack === 'string') {
+          recreated.stack = errorRecord.stack
         }
       } catch {
         // eslint-disable-next-line no-console
         console.error('Error0: failed to deserialize stack', errorRecord)
       }
     }
-    const causeDeserialize = plugin.cause?.deserialize ?? false
-    if (causeDeserialize && 'cause' in errorRecord) {
+    const causePlugin = plugin.cause ?? false
+    if (causePlugin && 'cause' in errorRecord) {
       try {
-        if (causeDeserialize === true) {
-          if (this.isSerialized(errorRecord.cause)) {
-            ;(recreated as { cause?: unknown }).cause = this._fromSerialized(errorRecord.cause)
-          }
+        if (this.isSerialized(errorRecord.cause)) {
+          ;(recreated as { cause?: unknown }).cause = this._fromSerialized(errorRecord.cause)
         } else {
-          const deserializedCause = causeDeserialize({ value: errorRecord.cause, serialized: errorRecord })
-          if (deserializedCause !== undefined) {
-            ;(recreated as { cause?: unknown }).cause = deserializedCause
-          }
+          ;(recreated as { cause?: unknown }).cause = errorRecord.cause
         }
       } catch {
         // eslint-disable-next-line no-console
@@ -822,8 +791,8 @@ export class Error0 extends Error {
       props: { ...(pluginRecord._plugin.props ?? {}) },
       methods: { ...(pluginRecord._plugin.methods ?? {}) },
       adapt: [...(pluginRecord._plugin.adapt ?? [])],
-      stack: pluginRecord._plugin.stack ? { ...pluginRecord._plugin.stack } : undefined,
-      cause: pluginRecord._plugin.cause ? { ...pluginRecord._plugin.cause } : undefined,
+      stack: pluginRecord._plugin.stack,
+      cause: pluginRecord._plugin.cause,
     }
   }
 
@@ -858,14 +827,14 @@ export class Error0 extends Error {
 
   static stack<TThis extends typeof Error0>(
     this: TThis,
-    value: ErrorPluginStackOptions<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
+    value: ErrorPluginStack<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
   ): ClassError0<PluginsMapOf<TThis>> {
     return this.use('stack', value)
   }
 
   static cause<TThis extends typeof Error0>(
     this: TThis,
-    value: ErrorPluginCauseOptions<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
+    value: ErrorPluginCause<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
   ): ClassError0<PluginsMapOf<TThis>> {
     return this.use('cause', value)
   }
@@ -900,44 +869,42 @@ export class Error0 extends Error {
   static use<TThis extends typeof Error0>(
     this: TThis,
     kind: 'stack',
-    value: ErrorPluginStackOptions<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
+    value: ErrorPluginStack<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
   ): ClassError0<PluginsMapOf<TThis>>
   static use<TThis extends typeof Error0>(
     this: TThis,
     kind: 'cause',
-    value: ErrorPluginCauseOptions<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
+    value: ErrorPluginCause<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
   ): ClassError0<PluginsMapOf<TThis>>
   static use(
     this: typeof Error0,
     first: PluginError0 | 'prop' | 'method' | 'adapt' | 'stack' | 'cause',
-    key?: string | ErrorPluginAdaptFn<any, any> | ErrorPluginStackOptions<any> | ErrorPluginCauseOptions<any>,
+    key?: unknown,
     value?: ErrorPluginPropOptions<unknown> | ErrorPluginMethodFn<unknown>,
   ): ClassError0 {
     if (first instanceof PluginError0) {
       return this._useWithPlugin(this._pluginFromBuilder(first))
     }
     if (first === 'stack') {
-      if (!key || typeof key !== 'object') {
-        throw new Error('Error0.use("stack", value) requires stack options')
+      if (typeof key === 'undefined') {
+        throw new Error('Error0.use("stack", value) requires stack plugin value')
       }
-      const { serialize, deserialize } = key as ErrorPluginStackOptions
+      if (key !== 'merge' && typeof key !== 'boolean' && typeof key !== 'function') {
+        throw new Error('Error0.use("stack", value) expects function | boolean | "merge"')
+      }
       return this._useWithPlugin({
-        stack: {
-          serialize,
-          deserialize: typeof deserialize !== 'undefined' ? deserialize : !!serialize,
-        },
+        stack: key as ErrorPluginStack,
       })
     }
     if (first === 'cause') {
-      if (!key || typeof key !== 'object') {
-        throw new Error('Error0.use("cause", value) requires cause options')
+      if (typeof key === 'undefined') {
+        throw new Error('Error0.use("cause", value) requires cause plugin value')
       }
-      const { serialize, deserialize } = key as ErrorPluginCauseOptions
+      if (typeof key !== 'boolean' && typeof key !== 'function') {
+        throw new Error('Error0.use("cause", value) expects function | boolean')
+      }
       return this._useWithPlugin({
-        cause: {
-          serialize,
-          deserialize: typeof deserialize !== 'undefined' ? deserialize : !!serialize,
-        },
+        cause: key as ErrorPluginCause,
       })
     }
     if (first === 'adapt') {
@@ -945,7 +912,7 @@ export class Error0 extends Error {
         throw new Error('Error0.use("adapt", value) requires adapt function')
       }
       return this._useWithPlugin({
-        adapt: [key],
+        adapt: [key as ErrorPluginAdaptFn<Error0, Record<string, unknown>>],
       })
     }
     if (typeof key !== 'string' || value === undefined) {
@@ -997,7 +964,7 @@ export class Error0 extends Error {
         console.error(`Error0: failed to serialize property ${key}`, resolvedRecord)
       }
     }
-    const stackSerialize = plugin.stack?.serialize
+    const stackSerialize = plugin.stack
     if (stackSerialize !== false) {
       try {
         let serializedStack: unknown
@@ -1022,7 +989,7 @@ export class Error0 extends Error {
         console.error('Error0: failed to serialize stack', error0)
       }
     }
-    const causeSerialize = plugin.cause?.serialize ?? false
+    const causeSerialize = plugin.cause ?? false
     if (causeSerialize) {
       try {
         if (causeSerialize === true) {

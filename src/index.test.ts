@@ -185,9 +185,7 @@ describe('Error0', () => {
   })
 
   it('stack plugin can customize stack serialization without defining prop plugin', () => {
-    const AppError = Error0.stack({
-      serialize: ({ value }) => (value ? `custom:${value}` : undefined),
-    })
+    const AppError = Error0.stack(({ value }) => (value ? `custom:${value}` : undefined))
     const error = new AppError('test')
     const json = AppError.serialize(error)
     expect(typeof json.stack).toBe('string')
@@ -195,14 +193,14 @@ describe('Error0', () => {
   })
 
   it('stack plugin serialize true keeps default stack', () => {
-    const AppError = Error0.stack({ serialize: true })
+    const AppError = Error0.stack(true)
     const error = new AppError('test')
     const json = AppError.serialize(error)
     expect(json.stack).toBe(error.stack)
   })
 
   it('stack plugin serialize false disables stack serialization', () => {
-    const AppError = Error0.stack({ serialize: false })
+    const AppError = Error0.stack(false)
     const error = new AppError('test')
     const json = AppError.serialize(error)
     expect('stack' in json).toBe(false)
@@ -252,7 +250,7 @@ describe('Error0', () => {
   })
 
   it('cause plugin true serializes and deserializes nested Error0 causes', () => {
-    const AppError = Error0.use(statusPlugin).use(codePlugin).cause({ serialize: true })
+    const AppError = Error0.use(statusPlugin).use(codePlugin).cause(true)
     const causeError = new AppError('cause', { status: 409, code: 'NOT_FOUND' })
     const error = new AppError('root', { status: 500, cause: causeError })
 
@@ -586,16 +584,15 @@ describe('Error0', () => {
   it('stack plugin can merge stack across causes in one serialized value', () => {
     const AppError = Error0.use(statusPlugin)
       .use(codePlugin)
-      .stack({
-        serialize: ({ error }) =>
-          error
-            .causes()
-            .map((cause) => {
-              return cause instanceof Error ? cause.stack : undefined
-            })
-            .filter((value): value is string => typeof value === 'string')
-            .join('\n'),
-      })
+      .stack(({ error }) =>
+        error
+          .causes()
+          .map((cause) => {
+            return cause instanceof Error ? cause.stack : undefined
+          })
+          .filter((value): value is string => typeof value === 'string')
+          .join('\n'),
+      )
     const error1 = new AppError('test1', { status: 400, code: 'NOT_FOUND' })
     const error2 = new AppError('test2', { status: 401, cause: error1 })
     const mergedStack1 = error1.serialize().stack as string
@@ -616,9 +613,7 @@ describe('Error0', () => {
   })
 
   it('stack plugin can merge stack across causes in one serialized value by helper "merge"', () => {
-    const AppError = Error0.use(statusPlugin).use(codePlugin).stack({
-      serialize: 'merge',
-    })
+    const AppError = Error0.use(statusPlugin).use(codePlugin).stack('merge')
     const error1 = new AppError('test1', { status: 400, code: 'NOT_FOUND' })
     const error2 = new AppError('test2', { status: 401, cause: error1 })
     const mergedStack1 = error1.serialize().stack as string
