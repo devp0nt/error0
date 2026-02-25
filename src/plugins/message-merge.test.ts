@@ -14,7 +14,7 @@ describe('messageMergePlugin', () => {
   type Code = (typeof codes)[number]
   const codePlugin = Error0.plugin().use('prop', 'code', {
     init: (input: Code) => input,
-    resolve: ({ flow }) => flow.find((value) => typeof value === 'string' && codes.includes(value as Code)),
+    resolve: ({ flow }) => flow.find((value) => typeof value === 'string' && codes.includes(value)),
     serialize: ({ value, isPublic }) => (isPublic ? undefined : value),
     deserialize: ({ value }) =>
       typeof value === 'string' && codes.includes(value as Code) ? (value as Code) : undefined,
@@ -24,6 +24,8 @@ describe('messageMergePlugin', () => {
     const AppError = Error0.use(statusPlugin).use(codePlugin).use(messageMergePlugin)
     const error1 = new AppError('test1', { status: 400, code: 'NOT_FOUND' })
     const error2 = new AppError('test2', { status: 401, cause: error1 })
+    expect(error1.message).toBe('test1')
+    expect(error2.message).toBe('test2')
     expect(error1.serialize().message).toBe('test1')
     expect(error2.serialize().message).toBe('test2: test1')
   })
