@@ -52,6 +52,7 @@ describe('tagsPlugin', () => {
       message: 'test',
       tags: ['db', 'custom', 123],
     })
+
     expect(recreated.tags).toEqual(['db', 'custom'])
   })
 
