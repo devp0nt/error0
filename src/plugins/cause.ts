@@ -9,12 +9,12 @@ type Variant = {
 }
 
 export const causePlugin = <TVariants extends Record<string, Variant> = Record<never, Variant>>({
-  hideWhenPublic = true,
+  isPublic = false,
   variants = undefined,
-}: { hideWhenPublic?: boolean; variants?: TVariants } = {}) =>
+}: { isPublic?: boolean; variants?: TVariants } = {}) =>
   Error0.plugin().cause({
-    serialize: ({ cause, isPublic, is, serialize }) => {
-      if (hideWhenPublic && isPublic) {
+    serialize: ({ cause, isPublic: _isPublic, is, serialize }) => {
+      if (!isPublic && _isPublic) {
         return undefined
       }
       if (variants) {

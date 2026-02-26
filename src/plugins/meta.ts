@@ -28,7 +28,7 @@ const toJsonSafe = (input: unknown): Json | undefined => {
 const isMetaRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-export const metaPlugin = ({ hideWhenPublic = true }: { hideWhenPublic?: boolean } = {}) =>
+export const metaPlugin = ({ isPublic = false }: { isPublic?: boolean } = {}) =>
   Error0.plugin().prop('meta', {
     init: (input: Record<string, unknown>) => input,
     resolve: ({ flow }) => {
@@ -44,8 +44,8 @@ export const metaPlugin = ({ hideWhenPublic = true }: { hideWhenPublic?: boolean
       }
       return merged
     },
-    serialize: ({ resolved, isPublic }) => {
-      if (hideWhenPublic && isPublic) {
+    serialize: ({ resolved, isPublic: _isPublic }) => {
+      if (!isPublic && _isPublic) {
         return undefined
       }
       return toJsonSafe(resolved)

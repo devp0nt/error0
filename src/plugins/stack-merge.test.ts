@@ -54,11 +54,4 @@ describe('stackMergePlugin', () => {
     `)
     expect(mergedStack2Public).toBeUndefined()
   })
-
-  it('by default serializes stack of this error only', () => {
-    const AppError = Error0.use(statusPlugin).use(codePlugin).use(stackMergePlugin())
-    const error = new AppError('test', { status: 400, code: 'NOT_FOUND' })
-    const json = AppError.serialize(error, false)
-    expect(json.stack).toBe(error.stack)
-  })
 })

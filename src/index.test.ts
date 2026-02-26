@@ -203,11 +203,18 @@ describe('Error0', () => {
     expect('code' in json).toBe(false)
   })
 
-  it('serialize keeps stack by default without stack plugin', () => {
+  it('serialize keeps stack by default without stack plugin when not public', () => {
     const AppError = Error0.use(statusPlugin)
     const error = new AppError('test', { status: 500 })
-    const json = AppError.serialize(error)
+    const json = AppError.serialize(error, false)
     expect(json.stack).toBe(error.stack)
+  })
+
+  it('serialize does not keep stack when public', () => {
+    const AppError = Error0.use(statusPlugin)
+    const error = new AppError('test', { status: 500 })
+    const json = AppError.serialize(error, true)
+    expect('stack' in json).toBe(false)
   })
 
   it('stack plugin can customize stack serialization without defining prop plugin', () => {

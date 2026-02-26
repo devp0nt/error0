@@ -1181,8 +1181,6 @@ export class Error0 extends Error {
     }
     const json: Record<string, unknown> = {
       name: error0.name,
-      // we do not serialize causes, it is enough that we have floated props and adapt helper
-      // cause: error0.cause,
     }
     if (serializedMessage !== undefined) {
       json.message = serializedMessage
@@ -1221,7 +1219,7 @@ export class Error0 extends Error {
       if (stackPlugin) {
         serializedStack = stackPlugin.serialize({ value: error0.stack, error: error0, isPublic })
       } else {
-        serializedStack = error0.stack
+        serializedStack = isPublic ? undefined : error0.stack
       }
       if (serializedStack !== undefined) {
         json.stack = serializedStack
