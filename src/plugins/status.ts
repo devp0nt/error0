@@ -19,10 +19,11 @@ export const statusPlugin = <TStatuses extends Record<string, number> = Record<n
     }
     return undefined
   }
+
   return Error0.plugin().prop('status', {
     init: (status: number | Extract<keyof TStatuses, string>) => convertStatusValue(status),
     resolve: ({ flow }) => flow.find(Boolean),
-    serialize: ({ resolved, isPublic }) => resolved,
-    deserialize: ({ value, record }) => (typeof value === 'number' ? value : undefined),
+    serialize: ({ resolved }) => resolved,
+    deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
   })
 }
