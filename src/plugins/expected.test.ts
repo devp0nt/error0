@@ -11,7 +11,7 @@ describe('expectedPlugin', () => {
   })
 
   it('can be used to control error tracker behavior', () => {
-    const AppError = Error0.use(statusPlugin).use(expectedPlugin)
+    const AppError = Error0.use(statusPlugin).use(expectedPlugin({ hideWhenPublic: false }))
     const errorExpected = new AppError('test', { status: 400, expected: true })
     const errorUnexpected = new AppError('test', { status: 400, expected: false })
     const usualError = new Error('test')
@@ -30,7 +30,7 @@ describe('expectedPlugin', () => {
   })
 
   it('resolves to false when any cause has false', () => {
-    const AppError = Error0.use(expectedPlugin)
+    const AppError = Error0.use(expectedPlugin({ hideWhenPublic: false }))
     const root = new AppError('root', { expected: true })
     const middle = new AppError('middle', { expected: false, cause: root })
     const leaf = new AppError('leaf', { expected: false, cause: middle })
@@ -39,7 +39,7 @@ describe('expectedPlugin', () => {
   })
 
   it('treats undefined expected as unexpected', () => {
-    const AppError = Error0.use(expectedPlugin)
+    const AppError = Error0.use(expectedPlugin({ hideWhenPublic: false }))
     const error = new AppError('without expected')
     expect(error.expected).toBe(false)
     expect(error.isExpected()).toBe(false)

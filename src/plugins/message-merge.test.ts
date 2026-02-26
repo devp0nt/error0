@@ -21,7 +21,7 @@ describe('messageMergePlugin', () => {
   })
 
   it('can merge message across causes in one serialized value', () => {
-    const AppError = Error0.use(statusPlugin).use(codePlugin).use(messageMergePlugin)
+    const AppError = Error0.use(statusPlugin).use(codePlugin).use(messageMergePlugin())
     const error1 = new AppError('test1', { status: 400, code: 'NOT_FOUND' })
     const error2 = new AppError('test2', { status: 401, cause: error1 })
     expect(error1.message).toBe('test1')

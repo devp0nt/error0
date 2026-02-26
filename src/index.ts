@@ -1,7 +1,4 @@
 // Эррор плагины все с намтройками
-// Не сериалайзед а рекорд
-// И в сериалайз тоже добавить оун резолвед и флоу
-// Not console error but add error text to json
 
 type IsUnknown<T> = unknown extends T ? ([T] extends [unknown] ? true : false) : false
 type NormalizeUnknownToUndefined<T> = IsUnknown<T> extends true ? undefined : T
@@ -417,6 +414,7 @@ const OWN_SYMBOL: unique symbol = Symbol('Error0.own')
 type ErrorOwnStore = Record<string, unknown>
 
 export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> = {
+  MAX_CAUSES_DEPTH: number
   new (
     message: string,
     input?: ErrorInput<TPluginsMap>,
@@ -438,6 +436,13 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
     error: unknown,
     isPublic?: boolean,
   ) => Error0 & ErrorResolved<TPluginsMap> & ErrorOwnMethods<TPluginsMap> & ErrorResolveMethods<TPluginsMap>
+  causes: {
+    (error: unknown, instancesOnly?: false): unknown[]
+    (
+      error: unknown,
+      instancesOnly: true,
+    ): Array<Error0 & ErrorResolved<TPluginsMap> & ErrorOwnMethods<TPluginsMap> & ErrorResolveMethods<TPluginsMap>>
+  }
   resolve: (error: unknown) => ErrorResolvedProps<TPluginsMap>
   serialize: (error: unknown, isPublic?: boolean) => Record<string, unknown>
   own: {
@@ -499,6 +504,7 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
 export class Error0 extends Error {
   static readonly __pluginsMap?: EmptyPluginsMap
   readonly __pluginsMap?: EmptyPluginsMap
+  static MAX_CAUSES_DEPTH = 99
   protected static _plugins: ErrorPlugin[] = []
   protected static _resolvedPlugin?: ErrorPluginResolved
 
@@ -549,7 +555,11 @@ export class Error0 extends Error {
     }
   }
 
-  private static _mergeResolvedPlugin(this: typeof Error0, base: ErrorPluginResolved, plugin: ErrorPlugin): ErrorPluginResolved {
+  private static _mergeResolvedPlugin(
+    this: typeof Error0,
+    base: ErrorPluginResolved,
+    plugin: ErrorPlugin,
+  ): ErrorPluginResolved {
     const merged: Omit<ErrorPluginResolved, 'propKeys' | 'propEntries' | 'methodEntries'> = {
       props: { ...base.props },
       methods: { ...base.methods },
@@ -769,9 +779,9 @@ export class Error0 extends Error {
   static causes(error: unknown, instancesOnly?: boolean): unknown[] {
     const causes: unknown[] = []
     let current: unknown = error
-    const maxDepth = 99
     const seen = new Set<unknown>()
-    for (let depth = 0; depth < maxDepth; depth += 1) {
+    let depth = 0
+    while (depth < this.MAX_CAUSES_DEPTH) {
       if (seen.has(current)) {
         break
       }
@@ -783,6 +793,7 @@ export class Error0 extends Error {
         break
       }
       current = (current as { cause?: unknown }).cause
+      depth += 1
     }
     return causes
   }

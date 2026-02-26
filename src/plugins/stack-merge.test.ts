@@ -33,7 +33,7 @@ describe('stackMergePlugin', () => {
   })
 
   it('can merge stack across causes in one serialized value', () => {
-    const AppError = Error0.use(statusPlugin).use(codePlugin).use(stackMergePlugin)
+    const AppError = Error0.use(statusPlugin).use(codePlugin).use(stackMergePlugin())
     const error1 = new AppError('test1', { status: 400, code: 'NOT_FOUND' })
     const error2 = new AppError('test2', { status: 401, cause: error1 })
     const mergedStack1 = error1.serialize(false).stack as string
@@ -56,7 +56,7 @@ describe('stackMergePlugin', () => {
   })
 
   it('by default serializes stack of this error only', () => {
-    const AppError = Error0.use(statusPlugin).use(codePlugin).use(stackMergePlugin)
+    const AppError = Error0.use(statusPlugin).use(codePlugin).use(stackMergePlugin())
     const error = new AppError('test', { status: 400, code: 'NOT_FOUND' })
     const json = AppError.serialize(error, false)
     expect(json.stack).toBe(error.stack)

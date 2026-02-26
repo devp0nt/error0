@@ -13,13 +13,19 @@ const isExpected = (flow: unknown[]) => {
   return expected
 }
 
-export const expectedPlugin = Error0.plugin()
-  .use('prop', 'expected', {
-    init: (input: boolean) => input,
-    resolve: ({ flow }) => isExpected(flow),
-    serialize: ({ resolved }) => resolved,
-    deserialize: ({ value }) => (typeof value === 'boolean' ? value : undefined),
-  })
-  .use('method', 'isExpected', (error) => {
-    return isExpected(error.flow('expected'))
-  })
+export const expectedPlugin = ({ hideWhenPublic = true }: { hideWhenPublic?: boolean } = {}) =>
+  Error0.plugin()
+    .use('prop', 'expected', {
+      init: (input: boolean) => input,
+      resolve: ({ flow }) => isExpected(flow),
+      serialize: ({ resolved, isPublic }) => {
+        if (hideWhenPublic && isPublic) {
+          return undefined
+        }
+        return resolved
+      },
+      deserialize: ({ value }) => (typeof value === 'boolean' ? value : undefined),
+    })
+    .use('method', 'isExpected', (error) => {
+      return isExpected(error.flow('expected'))
+    })

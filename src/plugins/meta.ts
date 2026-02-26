@@ -28,26 +28,32 @@ const toJsonSafe = (input: unknown): Json | undefined => {
 const isMetaRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-export const metaPlugin = Error0.plugin().use('prop', 'meta', {
-  init: (input: Record<string, unknown>) => input,
-  resolve: ({ flow }) => {
-    const values = flow.filter(isMetaRecord)
-    if (values.length === 0) {
-      return undefined
-    }
+export const metaPlugin = ({ hideWhenPublic = true }: { hideWhenPublic?: boolean } = {}) =>
+  Error0.plugin().use('prop', 'meta', {
+    init: (input: Record<string, unknown>) => input,
+    resolve: ({ flow }) => {
+      const values = flow.filter(isMetaRecord)
+      if (values.length === 0) {
+        return undefined
+      }
 
-    // Merge cause meta into the current error; nearer errors win on conflicts.
-    const merged: Record<string, unknown> = {}
-    for (const value of [...values].reverse()) {
-      Object.assign(merged, value)
-    }
-    return merged
-  },
-  serialize: ({ resolved, isPublic }) => (isPublic ? undefined : toJsonSafe(resolved)),
-  deserialize: ({ value }) => {
-    if (!isMetaRecord(value)) {
-      return undefined
-    }
-    return value
-  },
-})
+      // Merge cause meta into the current error; nearer errors win on conflicts.
+      const merged: Record<string, unknown> = {}
+      for (const value of [...values].reverse()) {
+        Object.assign(merged, value)
+      }
+      return merged
+    },
+    serialize: ({ resolved, isPublic }) => {
+      if (hideWhenPublic && isPublic) {
+        return undefined
+      }
+      return toJsonSafe(resolved)
+    },
+    deserialize: ({ value }) => {
+      if (!isMetaRecord(value)) {
+        return undefined
+      }
+      return value
+    },
+  })

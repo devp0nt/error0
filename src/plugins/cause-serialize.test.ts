@@ -14,14 +14,16 @@ describe('causeSerializePlugin', () => {
   type Code = (typeof codes)[number]
   const codePlugin = Error0.plugin().use('prop', 'code', {
     init: (input: Code) => input,
-    resolve: ({ flow }) => flow.find((value) => typeof value === 'string' && codes.includes(value as Code)),
+    resolve: ({ flow }) => flow.find((value) => typeof value === 'string' && codes.includes(value)),
     serialize: ({ resolved, isPublic }) => (isPublic ? undefined : resolved),
     deserialize: ({ value }) =>
       typeof value === 'string' && codes.includes(value as Code) ? (value as Code) : undefined,
   })
 
   it('serializes and deserializes nested Error0 causes', () => {
-    const AppError = Error0.use(statusPlugin).use(codePlugin).use(causeSerializePlugin)
+    const AppError = Error0.use(statusPlugin)
+      .use(codePlugin)
+      .use(causeSerializePlugin({ hideWhenPublic: false }))
     const deepCauseError = new AppError('deep cause')
     const causeError = new AppError('cause', { status: 409, code: 'NOT_FOUND', cause: deepCauseError })
     const error = new AppError('root', { status: 500, cause: causeError })

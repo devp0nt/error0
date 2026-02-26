@@ -152,6 +152,19 @@ describe('Error0', () => {
     expect(Error0.causes(error2)).toEqual([error2, error1, anotherError])
   })
 
+  it('can limit causes depth via MAX_CAUSES_DEPTH on class', () => {
+    const AppError = Error0.use(statusPlugin)
+    const base = new AppError('base', { status: 400 })
+    const level1 = new AppError('level1', { status: 401, cause: base })
+    const level2 = new AppError('level2', { status: 402, cause: level1 })
+
+    AppError.MAX_CAUSES_DEPTH = 2
+    expect(AppError.causes(level2)).toEqual([level2, level1])
+
+    AppError.MAX_CAUSES_DEPTH = 999
+    expect(AppError.causes(level2)).toEqual([level2, level1, base])
+  })
+
   it('properties floating', () => {
     const AppError = Error0.use(statusPlugin).use(codePlugin)
     const anotherError = new Error('another error')
@@ -636,6 +649,38 @@ describe('Error0', () => {
       Error0: test1
           at <anonymous> (...)"
     `)
+  })
+
+  it('stress: resolve/serialize/flow stays within perf budget', () => {
+    const AppError = Error0.use(statusPlugin).use(codePlugin)
+
+    let current: InstanceType<typeof AppError> = new AppError('root', {
+      status: 500,
+      code: 'BAD_REQUEST',
+    })
+    for (let i = 0; i < 300; i += 1) {
+      current = new AppError(`level-${i}`, {
+        status: 500,
+        code: i % 2 === 0 ? 'NOT_FOUND' : 'BAD_REQUEST',
+        cause: current,
+      })
+    }
+
+    let checksum = 0
+    const startedAt = performance.now()
+    for (let i = 0; i < 3000; i += 1) {
+      const resolved = AppError.resolve(current)
+      const serialized = AppError.serialize(current, false)
+      const flow = current.flow('status')
+      checksum += resolved.status ?? 0
+      checksum += (serialized.status as number | undefined) ?? 0
+      checksum += flow.length
+    }
+    const elapsedMs = performance.now() - startedAt
+    const budgetMs = process.env.CI ? 8000 : 4000
+
+    expect(checksum).toBeGreaterThan(0)
+    expect(elapsedMs).toBeLessThan(budgetMs)
   })
 
   it('Error0 assignable to LikeError0', () => {
