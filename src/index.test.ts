@@ -164,6 +164,19 @@ describe('Error0', () => {
     expect(Error0.causes(error2)).toEqual([error2, error1, anotherError])
   })
 
+  it('property getter return resolved value, not own value', () => {
+    const AppError = Error0.use('prop', 'status', {
+      init: (input: number) => input,
+      resolve: () => 500,
+      serialize: ({ resolved }) => resolved,
+      deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
+    })
+    const error = new AppError('another error', { status: 400 })
+    expect(error.status).toBe(500)
+    expect(error.own('status')).toBe(400)
+    expect(error.flow('status')).toEqual([400])
+  })
+
   it('serialize uses identity by default and skips undefined plugin values', () => {
     const AppError = Error0.use(statusPlugin).use('prop', 'code', {
       init: (input: string) => input,

@@ -17,24 +17,30 @@ type InferPluginPropInput<TProp extends ErrorPluginPropOptions<any, any, any, an
   ? NormalizeUnknownToUndefined<InferFirstArg<TInit>>
   : undefined
 type ErrorPluginPropInit<TInputValue, TOutputValue> = ((input: TInputValue) => TOutputValue) | (() => TOutputValue)
+type ErrorPluginPropSerializeOptions<
+  TOutputValue,
+  TError extends Error0,
+  TResolveValue extends TOutputValue | undefined,
+> = {
+  own: TOutputValue | undefined
+  flow: Array<TOutputValue | undefined>
+  resolved: TResolveValue
+  error: TError
+  isPublic: boolean
+}
 type ErrorPluginPropSerialize<TOutputValue, TError extends Error0, TResolveValue extends TOutputValue | undefined> =
-  | ((options: {
-      own: TOutputValue | undefined
-      flow: Array<TOutputValue | undefined>
-      resolved: TResolveValue
-      error: TError
-      isPublic: boolean
-    }) => unknown)
+  | ((options: ErrorPluginPropSerializeOptions<TOutputValue, TError, TResolveValue>) => unknown)
   | false
 type ErrorPluginPropDeserialize<TOutputValue> =
   | ((options: { value: unknown; record: Record<string, unknown> }) => TOutputValue | undefined)
   | false
+type ErrorPluginPropOptionsResolveOptions<TOutputValue, TError extends Error0> = {
+  own: TOutputValue | undefined
+  flow: Array<TOutputValue | undefined>
+  error: TError
+}
 type ErrorPluginPropOptionsBase<TOutputValue, TError extends Error0, TResolveValue extends TOutputValue | undefined> = {
-  resolve: (options: {
-    own: TOutputValue | undefined
-    flow: Array<TOutputValue | undefined>
-    error: TError
-  }) => TResolveValue
+  resolve: (options: ErrorPluginPropOptionsResolveOptions<TOutputValue, TError>) => TResolveValue
   serialize: ErrorPluginPropSerialize<TOutputValue, TError, TResolveValue>
   deserialize: ErrorPluginPropDeserialize<TOutputValue>
 }
@@ -260,9 +266,16 @@ type PluginsMapFromParts<
   TProps extends ErrorPluginProps,
   TMethods extends ErrorPluginMethods,
 > = ErrorPluginsMapOfPlugin<ErrorPlugin<TProps, TMethods>>
-type ErrorInstanceOfMap<TMap extends ErrorPluginsMap> = Error0 & ErrorResolved<TMap>
+type ErrorInstanceOfMap<TMap extends ErrorPluginsMap> = Error0 &
+  ErrorResolved<TMap> &
+  ErrorOwnMethods<TMap> &
+  ErrorResolveMethods<TMap> & { readonly __pluginsMap?: TMap }
 type BuilderError0<TProps extends ErrorPluginProps, TMethods extends ErrorPluginMethods> = Error0 &
-  ErrorResolved<PluginsMapFromParts<TProps, TMethods>>
+  ErrorResolved<PluginsMapFromParts<TProps, TMethods>> &
+  ErrorOwnMethods<PluginsMapFromParts<TProps, TMethods>> &
+  ErrorResolveMethods<PluginsMapFromParts<TProps, TMethods>> & {
+    readonly __pluginsMap?: PluginsMapFromParts<TProps, TMethods>
+  }
 
 type PluginOfBuilder<TBuilder> =
   TBuilder extends PluginError0<infer TProps, infer TMethods> ? ErrorPlugin<TProps, TMethods> : never
@@ -396,6 +409,9 @@ export class PluginError0<
     })
   }
 }
+
+const OWN_SYMBOL: unique symbol = Symbol('Error0.own')
+type ErrorOwnStore = Record<string, unknown>
 
 export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> = {
   new (
@@ -535,37 +551,47 @@ export class Error0 extends Error {
 
     const ctor = this.constructor as typeof Error0
     const plugin = ctor._getResolvedPlugin()
+    const ownStore = Object.create(null) as ErrorOwnStore
+    Object.defineProperty(this, OWN_SYMBOL, { value: ownStore, writable: true, enumerable: false, configurable: true })
 
     for (const [key, prop] of Object.entries(plugin.props)) {
       if (key === 'stack') {
         continue
       }
+      Object.defineProperty(this, key, {
+        get: () =>
+          prop.resolve({
+            own: ownStore[key],
+            flow: this.flow(key as never),
+            error: this,
+          }),
+        set: (value) => {
+          ownStore[key] = value
+        },
+        enumerable: true,
+        configurable: true,
+      })
       if (key in input) {
         const ownValue = (input as Record<string, unknown>)[key]
-        if (typeof prop.init === 'function') {
-          ;(this as Record<string, unknown>)[key] = prop.init(ownValue)
-        } else {
-          ;(this as Record<string, unknown>)[key] = ownValue
-        }
-      } else {
-        Object.defineProperty(this, key, {
-          get: () => prop.resolve({ own: undefined, flow: this.flow(key), error: this }),
-          set: (value) => {
-            Object.defineProperty(this, key, {
-              value,
-              writable: true,
-              enumerable: true,
-              configurable: true,
-            })
-          },
-          enumerable: true,
-          configurable: true,
-        })
+        ownStore[key] = typeof prop.init === 'function' ? prop.init(ownValue) : ownValue
       }
     }
   }
 
-  private static readonly isSelfProperty = (object: object, key: string): boolean => {
+  private static _getOwnStore(object: object): ErrorOwnStore | undefined {
+    const record = object as Record<string | symbol, unknown>
+    const existing = record[OWN_SYMBOL]
+    if (existing && typeof existing === 'object') {
+      return existing as ErrorOwnStore
+    }
+    return undefined
+  }
+
+  private static readonly isOwnProperty = (object: object, key: string): boolean => {
+    const ownStore = this._getOwnStore(object)
+    if (ownStore && Object.prototype.hasOwnProperty.call(ownStore, key)) {
+      return true
+    }
     const d = Object.getOwnPropertyDescriptor(object, key)
     if (!d) return false
     if (typeof d.get === 'function' || typeof d.set === 'function') {
@@ -578,7 +604,11 @@ export class Error0 extends Error {
     return true
   }
   private static _ownByKey(error: object, key: string): unknown {
-    if (this.isSelfProperty(error, key)) {
+    const ownStore = this._getOwnStore(error)
+    if (ownStore && Object.prototype.hasOwnProperty.call(ownStore, key)) {
+      return ownStore[key]
+    }
+    if (this.isOwnProperty(error, key)) {
       return (error as Record<string, unknown>)[key]
     }
     return undefined
@@ -625,7 +655,6 @@ export class Error0 extends Error {
     error: unknown,
     key: TKey,
   ): Array<ErrorOwnProps<PluginsMapOf<TThis>>[TKey]>
-  static flow(error: unknown, key: string): unknown[]
   static flow(error: unknown, key: string): unknown[] {
     const error0 = this.from(error)
     return this._flowByKey(error0, key)
@@ -634,10 +663,38 @@ export class Error0 extends Error {
     this: TThis,
     key: TKey,
   ): Array<ErrorOwnProps<PluginsMapOfInstance<TThis>>[TKey]>
-  flow(key: string): unknown[]
   flow(key: string): unknown[] {
     const ctor = this.constructor as typeof Error0
     return ctor._flowByKey(this, key)
+  }
+
+  static _resolveByKey(error: Error0, key: string, plugin: ErrorPluginResolved): unknown {
+    try {
+      // resolved[key] = (error0 as unknown as Record<string, unknown>)[key]
+      const options = Object.defineProperties(
+        {
+          error,
+        },
+        {
+          own: {
+            get: () => error.own(key as never),
+          },
+          flow: {
+            get: () => error.flow(key as never),
+          },
+        },
+      )
+      const resolver = plugin.props[key].resolve
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!resolver) {
+        return (error as any)[key]
+      }
+      return plugin.props[key].resolve(options as ErrorPluginPropOptionsResolveOptions<any, any>)
+    } catch {
+      // eslint-disable-next-line no-console
+      console.error(`Error0: failed to resolve property ${key}`, error)
+      return undefined
+    }
   }
 
   static resolve<TThis extends typeof Error0>(this: TThis, error: unknown): ErrorResolvedProps<PluginsMapOf<TThis>>
@@ -646,33 +703,12 @@ export class Error0 extends Error {
     const error0 = this.from(error)
     const resolved: Record<string, unknown> = {}
     const plugin = this._getResolvedPlugin()
-    for (const [key, prop] of Object.entries(plugin.props)) {
-      try {
-        // resolved[key] = (error0 as unknown as Record<string, unknown>)[key]
-        const options = Object.defineProperties(
-          {
-            error: error0,
-          },
-          {
-            own: {
-              get: () => error0.own(key as never),
-            },
-            flow: {
-              get: () => error0.flow(key),
-            },
-          },
-        )
-        resolved[key] = prop.resolve(options as never)
-        // resolved[key] = prop.resolve({ own: error0.own(key as never), flow: error0.flow(key), error: error0 })
-      } catch {
-        // eslint-disable-next-line no-console
-        console.error(`Error0: failed to resolve property ${key}`, error0)
-      }
+    for (const key of Object.keys(plugin.props)) {
+      resolved[key] = this._resolveByKey(error0, key, plugin)
     }
     return resolved
   }
   resolve<TThis extends Error0>(this: TThis): ErrorResolvedProps<PluginsMapOfInstance<TThis>>
-  resolve(): Record<string, unknown>
   resolve(): Record<string, unknown> {
     const ctor = this.constructor as typeof Error0
     return ctor.resolve(this)
@@ -1016,8 +1052,6 @@ export class Error0 extends Error {
 
   static serialize(error: unknown, isPublic = true): Record<string, unknown> {
     const error0 = this.from(error)
-    const resolvedProps = this.resolve(error0)
-    const resolvedRecord = resolvedProps as Record<string, unknown>
     const plugin = this._getResolvedPlugin()
     const messagePlugin = plugin.message
     let serializedMessage: unknown = error0.message
@@ -1056,17 +1090,17 @@ export class Error0 extends Error {
               get: () => error0.flow(key as never),
             },
             resolved: {
-              get: () => resolvedRecord[key],
+              get: () => this._resolveByKey(error0, key, plugin),
             },
           },
         )
-        const jsonValue = prop.serialize(options as never)
+        const jsonValue = prop.serialize(options as ErrorPluginPropSerializeOptions<any, any, any>)
         if (jsonValue !== undefined) {
           json[key] = jsonValue
         }
       } catch {
         // eslint-disable-next-line no-console
-        console.error(`Error0: failed to serialize property ${key}`, resolvedRecord)
+        console.error(`Error0: failed to serialize property ${key}`, error0)
       }
     }
     const stackPlugin = plugin.stack
