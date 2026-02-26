@@ -295,10 +295,7 @@ type ExtendErrorPluginsMapWithMethod<
   TMap extends ErrorPluginsMap,
   TKey extends string,
   TMethod extends ErrorPluginAnyMethodFn,
-> = ExtendErrorPluginsMap<
-  TMap,
-  ErrorPlugin<Record<never, never>, Record<TKey, TMethod>>
->
+> = ExtendErrorPluginsMap<TMap, ErrorPlugin<Record<never, never>, Record<TKey, TMethod>>>
 
 type PluginsMapOf<TClass> = TClass extends { __pluginsMap?: infer TPluginsMap }
   ? TPluginsMap extends ErrorPluginsMap
@@ -699,29 +696,17 @@ export class Error0 extends Error {
 
   private static readonly isOwnProperty = (object: object, key: string): boolean => {
     const ownStore = this._getOwnStore(object)
-    if (ownStore && Object.prototype.hasOwnProperty.call(ownStore, key)) {
-      return true
+    if (ownStore) {
+      return Object.prototype.hasOwnProperty.call(ownStore, key)
     }
-    const d = Object.getOwnPropertyDescriptor(object, key)
-    if (!d) return false
-    if (typeof d.get === 'function' || typeof d.set === 'function') {
-      if ('name' in object && object.name === 'Error0') {
-        return false
-      } else {
-        return true
-      }
-    }
-    return true
+    return !!Object.getOwnPropertyDescriptor(object, key)
   }
   private static _ownByKey(error: object, key: string): unknown {
     const ownStore = this._getOwnStore(error)
-    if (ownStore && Object.prototype.hasOwnProperty.call(ownStore, key)) {
+    if (ownStore) {
       return ownStore[key]
     }
-    if (this.isOwnProperty(error, key)) {
-      return (error as Record<string, unknown>)[key]
-    }
-    return undefined
+    return (error as Record<string, unknown>)[key]
   }
   private static _flowByKey(error: object, key: string): unknown[] {
     const causes = this.causes(error, true)
