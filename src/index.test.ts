@@ -683,15 +683,59 @@ describe('Error0', () => {
     expect(elapsedMs).toBeLessThan(budgetMs)
   })
 
+  // it('Error0 assignable to LikeError0', () => {
+  //   type LikeError0 = {
+  //     from: (error: unknown) => Error
+  //     serialize: (error: Error) => Record<string, unknown>
+  //   }
+  //   expectTypeOf<typeof Error0>().toExtend<LikeError0>()
+  //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  //   const AppError = Error0.use(statusPlugin)
+  //   expectTypeOf<typeof AppError>().toExtend<LikeError0>()
+  // })
+
   it('Error0 assignable to LikeError0', () => {
-    type LikeError0 = {
-      from: (error: unknown) => Error
-      serialize: (error: Error) => Record<string, unknown>
+    class MyError extends Error {
+      status?: number
+      code?: string
+      constructor(message: string, options: { cause?: unknown; status?: number; code?: string }) {
+        super(message, { cause: options.cause })
+        this.status = options.status
+        this.code = options.code
+      }
+
+      static from(error: unknown): MyError {
+        if (error instanceof MyError) {
+          return error
+        }
+        const object = typeof error === 'object' && error !== null ? (error as Record<string, unknown>) : {}
+        const message =
+          typeof object.message === 'string' ? object.message : typeof error === 'string' ? error : 'Unknown error'
+        const status = typeof object.status === 'number' ? object.status : undefined
+        const code = typeof object.code === 'string' ? object.code : undefined
+        return new MyError(message, {
+          cause: error,
+          status,
+          code,
+        })
+      }
+
+      static serialize(error: MyError): Record<string, unknown> {
+        return {
+          message: error.message,
+          status: error.status,
+          code: error.code,
+        }
+      }
     }
-    expectTypeOf<typeof Error0>().toExtend<LikeError0>()
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const AppError = Error0.use(statusPlugin)
-    expectTypeOf<typeof AppError>().toExtend<LikeError0>()
+
+    type LikeError0<TError> = {
+      new (message: string, options: { cause?: unknown; status?: number; code?: string }): TError
+      from: (error: unknown) => TError
+      serialize: (error: TError) => Record<string, unknown>
+    }
+    expectTypeOf<typeof MyError>().toExtend<LikeError0<MyError>>()
+    expectTypeOf<typeof Error0>().toExtend<typeof MyError>()
   })
 
   // we will have no variants

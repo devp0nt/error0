@@ -4,7 +4,7 @@ export const stackMergePlugin = ({
   hideWhenPublic = true,
   delimiter = '\n',
 }: { hideWhenPublic?: boolean; delimiter?: string } = {}) =>
-  Error0.plugin().use('stack', {
+  Error0.plugin().stack({
     serialize: ({ error, isPublic }) => {
       if (hideWhenPublic && isPublic) {
         return undefined

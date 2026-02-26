@@ -29,7 +29,7 @@ const isMetaRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
 export const metaPlugin = ({ hideWhenPublic = true }: { hideWhenPublic?: boolean } = {}) =>
-  Error0.plugin().use('prop', 'meta', {
+  Error0.plugin().prop('meta', {
     init: (input: Record<string, unknown>) => input,
     resolve: ({ flow }) => {
       const values = flow.filter(isMetaRecord)

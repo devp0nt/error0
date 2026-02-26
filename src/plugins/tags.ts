@@ -1,7 +1,7 @@
 import { Error0 } from '../index.js'
 
 export const tagsPlugin = ({ hideWhenPublic = true }: { hideWhenPublic?: boolean } = {}) =>
-  Error0.plugin().use('prop', 'tags', {
+  Error0.plugin().prop('tags', {
     init: (input: string[]) => input,
     resolve: ({ flow }) => {
       const merged: string[] = []

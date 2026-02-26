@@ -1,7 +1,7 @@
 import { Error0 } from '../index.js'
 
 export const causeSerializePlugin = ({ hideWhenPublic = true }: { hideWhenPublic?: boolean } = {}) =>
-  Error0.plugin().use('cause', {
+  Error0.plugin().cause({
     serialize: ({ value, error, isPublic }) => {
       if (hideWhenPublic && isPublic) {
         return undefined

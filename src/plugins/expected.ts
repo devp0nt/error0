@@ -15,7 +15,7 @@ const isExpected = (flow: unknown[]) => {
 
 export const expectedPlugin = ({ hideWhenPublic = true }: { hideWhenPublic?: boolean } = {}) =>
   Error0.plugin()
-    .use('prop', 'expected', {
+    .prop('expected', {
       init: (input: boolean) => input,
       resolve: ({ flow }) => isExpected(flow),
       serialize: ({ resolved, isPublic }) => {
@@ -26,6 +26,6 @@ export const expectedPlugin = ({ hideWhenPublic = true }: { hideWhenPublic?: boo
       },
       deserialize: ({ value }) => (typeof value === 'boolean' ? value : undefined),
     })
-    .use('method', 'isExpected', (error) => {
+    .method('isExpected', (error) => {
       return isExpected(error.flow('expected'))
     })
