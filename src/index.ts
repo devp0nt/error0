@@ -79,11 +79,22 @@ export type ErrorPluginStackSerialize<TError extends Error0> = (options: {
 }) => unknown
 export type ErrorPluginStack<TError extends Error0 = Error0> = { serialize: ErrorPluginStackSerialize<TError> }
 export type ErrorPluginCauseSerialize<TError extends Error0> = (options: {
-  value: unknown
+  cause: unknown
   error: TError
   isPublic: boolean
+  is: (cause: unknown) => boolean
+  serialize: (cause: unknown) => Record<string, unknown>
 }) => unknown
-export type ErrorPluginCause<TError extends Error0 = Error0> = { serialize: ErrorPluginCauseSerialize<TError> }
+export type ErrorPluginCauseDeserialize = (options: {
+  cause: unknown
+  error: Record<string, unknown>
+  isSerialized: (serializedCause: unknown) => boolean
+  fromSerialized: (serializedCause: unknown) => Error0
+}) => unknown
+export type ErrorPluginCause<TError extends Error0 = Error0> = {
+  serialize: ErrorPluginCauseSerialize<TError>
+  deserialize: ErrorPluginCauseDeserialize
+}
 export type ErrorPluginMessageSerialize<TError extends Error0> = (options: {
   value: string
   error: TError
@@ -897,8 +908,6 @@ export class Error0 extends Error {
         console.error(`Error0: failed to deserialize property ${key}`, errorRecord)
       }
     }
-    // we do not serialize causes
-    // ;(recreated as unknown as { cause?: unknown }).cause = errorRecord.cause
     if ('stack' in errorRecord) {
       try {
         if (typeof errorRecord.stack === 'string') {
@@ -910,13 +919,14 @@ export class Error0 extends Error {
       }
     }
     const causePlugin = plugin.cause
-    if (causePlugin?.serialize && 'cause' in errorRecord) {
+    if (causePlugin && 'cause' in errorRecord) {
       try {
-        if (this.isSerialized(errorRecord.cause)) {
-          ;(recreated as { cause?: unknown }).cause = this._fromSerialized(errorRecord.cause)
-        } else {
-          ;(recreated as { cause?: unknown }).cause = errorRecord.cause
-        }
+        ;(recreated as { cause?: unknown }).cause = causePlugin.deserialize({
+          cause: errorRecord.cause,
+          error: errorRecord,
+          isSerialized: (serializedCause) => this.isSerialized(serializedCause),
+          fromSerialized: (serializedCause) => this._fromSerialized(serializedCause),
+        })
       } catch {
         // eslint-disable-next-line no-console
         console.error('Error0: failed to deserialize cause', errorRecord)
@@ -1098,8 +1108,13 @@ export class Error0 extends Error {
       if (typeof key === 'undefined') {
         throw new Error('Error0.use("cause", value) requires cause plugin value')
       }
-      if (typeof key !== 'object' || key === null || typeof (key as { serialize?: unknown }).serialize !== 'function') {
-        throw new Error('Error0.use("cause", value) expects { serialize: function }')
+      if (
+        typeof key !== 'object' ||
+        key === null ||
+        typeof (key as { serialize?: unknown }).serialize !== 'function' ||
+        typeof (key as { deserialize?: unknown }).deserialize !== 'function'
+      ) {
+        throw new Error('Error0.use("cause", value) expects { serialize: function, deserialize: function }')
       }
       return this._useWithPlugin({
         cause: key as ErrorPluginCause,
@@ -1219,9 +1234,11 @@ export class Error0 extends Error {
     if (causePlugin?.serialize) {
       try {
         const serializedCause = causePlugin.serialize({
-          value: (error0 as { cause?: unknown }).cause,
+          cause: (error0 as { cause?: unknown }).cause,
           error: error0,
           isPublic,
+          is: (cause) => this.is(cause),
+          serialize: (cause) => this.serialize(cause, isPublic),
         })
         if (serializedCause !== undefined) {
           json.cause = serializedCause
