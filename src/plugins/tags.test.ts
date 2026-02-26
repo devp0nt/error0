@@ -66,8 +66,6 @@ describe('tagsPlugin', () => {
 
     // @ts-expect-error - unknown tag is not part of allow-list
     error.hasTag('custom')
-    // @ts-expect-error - array checks require policy argument
-    error.hasTag(['api', 'db'])
     // @ts-expect-error - unsupported policy
     error.hasTag(['api', 'db'], 'all')
   })

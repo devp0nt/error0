@@ -3,6 +3,7 @@ import * as assert from 'node:assert'
 import z, { ZodError } from 'zod'
 import type { ClassError0 } from './index.js'
 import { Error0 } from './index.js'
+import { metaPlugin } from './plugins/meta.js'
 
 const fixStack = (stack: string | undefined) => {
   if (!stack) {
@@ -27,7 +28,10 @@ describe('Error0', () => {
       serialize: ({ resolved }) => resolved,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
     })
-    .method('isStatus', (error, status: number) => error.status === status)
+    .method('isStatus', function (status: number) {
+      return this.status === status
+    })
+  // .method('isStatus', function (status: number) { return this.status === status })
 
   const codes = ['NOT_FOUND', 'BAD_REQUEST', 'UNAUTHORIZED'] as const
   type Code = (typeof codes)[number]
@@ -82,7 +86,9 @@ describe('Error0', () => {
       serialize: ({ resolved }) => resolved,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
     })
-      .use('method', 'isStatus', (error, expectedStatus: number) => error.status === expectedStatus)
+      .use('method', 'isStatus', function (expectedStatus: number) {
+        return this.status === expectedStatus
+      })
       .use('adapt', (error) => {
         if (error.cause instanceof Error && error.status === undefined) {
           return { status: 500 }
@@ -488,7 +494,9 @@ describe('Error0', () => {
         serialize: ({ resolved }) => resolved,
         deserialize: ({ value }) => (value === 'A' || value === 'B' ? value : undefined),
       })
-      .use('method', 'isStatus', (error, status: number) => error.status === status)
+      .use('method', 'isStatus', function (status: number) {
+        return this.status === status
+      })
 
     const root = new AppError('root', { status: 400, code: 'A' })
     const leaf = new AppError('leaf', { cause: root })
@@ -745,6 +753,13 @@ describe('Error0', () => {
     }
     expectTypeOf<typeof MyError>().toExtend<LikeError0<MyError>>()
     expectTypeOf<typeof Error0>().toExtend<typeof MyError>()
+    expectTypeOf<typeof Error0>().toExtend<LikeError0<Error>>()
+
+    const AppError = Error0.use(statusPlugin).use(codePlugin).use(metaPlugin())
+    type AppError = InstanceType<typeof AppError>
+    const error = new AppError('test', { status: 400, code: 'NOT_FOUND', meta: { requestId: '123' } })
+    error.isStatus(400)
+    expectTypeOf<AppError>().toExtend<MyError>()
   })
 
   // we will have no variants

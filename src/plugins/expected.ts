@@ -43,6 +43,6 @@ export const expectedPlugin = <TError extends Error0>({
       },
       deserialize: ({ value }) => (typeof value === 'boolean' ? value : undefined),
     })
-    .method('isExpected', (error) => {
-      return isExpected({ flow: error.flow('expected'), error, override })
+    .method('isExpected', function () {
+      return isExpected({ flow: this.flow('expected'), error: this, override })
     })

@@ -5,10 +5,10 @@ export const tagsPlugin = <TTag extends string>({
   tags,
   strict = true,
 }: { isPublic?: boolean; tags?: TTag[] | readonly TTag[]; strict?: boolean } = {}) => {
-  function hasTag(error: Error0, tag: TTag): boolean
-  function hasTag(error: Error0, tag: TTag[], policy: 'every' | 'some'): boolean
-  function hasTag(error: Error0, tag: TTag | TTag[], policy?: 'every' | 'some'): boolean {
-    const tags = (error as any).tags as string[] | undefined
+  function hasTag(this: Error0 & { tags?: string[] }, tag: TTag): boolean
+  function hasTag(this: Error0 & { tags?: string[] }, tag: TTag[], policy: 'every' | 'some'): boolean
+  function hasTag(this: Error0 & { tags?: string[] }, tag: TTag | TTag[], policy?: 'every' | 'some'): boolean {
+    const tags = this.tags
     if (!tags) {
       return false
     }
