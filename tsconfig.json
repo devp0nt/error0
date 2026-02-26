@@ -10,6 +10,7 @@
     "lib": ["ES2022"],
     "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
+    "experimentalDecorators": true,
     "allowImportingTsExtensions": false,
     "noEmit": true,
     "esModuleInterop": true,
