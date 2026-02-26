@@ -17,7 +17,7 @@ export const expectedPlugin = Error0.plugin()
   .use('prop', 'expected', {
     init: (input: boolean) => input,
     resolve: ({ flow }) => isExpected(flow),
-    serialize: ({ value }) => value,
+    serialize: ({ resolved }) => resolved,
     deserialize: ({ value }) => (typeof value === 'boolean' ? value : undefined),
   })
   .use('method', 'isExpected', (error) => {

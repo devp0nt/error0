@@ -11,7 +11,7 @@ export const tagsPlugin = Error0.plugin().use('prop', 'tags', {
     }
     return merged.length > 0 ? Array.from(new Set(merged)) : undefined
   },
-  serialize: ({ value, isPublic }) => (isPublic ? undefined : value),
+  serialize: ({ resolved, isPublic }) => (isPublic ? undefined : resolved),
   deserialize: ({ value }) => {
     if (!Array.isArray(value)) {
       return undefined

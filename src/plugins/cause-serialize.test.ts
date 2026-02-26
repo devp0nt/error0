@@ -6,7 +6,7 @@ describe('causeSerializePlugin', () => {
   const statusPlugin = Error0.plugin().use('prop', 'status', {
     init: (input: number) => input,
     resolve: ({ flow }) => flow.find((value) => typeof value === 'number'),
-    serialize: ({ value }) => value,
+    serialize: ({ resolved }) => resolved,
     deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
   })
 
@@ -15,7 +15,7 @@ describe('causeSerializePlugin', () => {
   const codePlugin = Error0.plugin().use('prop', 'code', {
     init: (input: Code) => input,
     resolve: ({ flow }) => flow.find((value) => typeof value === 'string' && codes.includes(value as Code)),
-    serialize: ({ value, isPublic }) => (isPublic ? undefined : value),
+    serialize: ({ resolved, isPublic }) => (isPublic ? undefined : resolved),
     deserialize: ({ value }) =>
       typeof value === 'string' && codes.includes(value as Code) ? (value as Code) : undefined,
   })

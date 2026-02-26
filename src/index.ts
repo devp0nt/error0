@@ -1,3 +1,8 @@
+// Эррор плагины все с намтройками
+// Не сериалайзед а рекорд
+// И в сериалайз тоже добавить оун резолвед и флоу
+// Not console error but add error text to json
+
 type IsUnknown<T> = unknown extends T ? ([T] extends [unknown] ? true : false) : false
 type NormalizeUnknownToUndefined<T> = IsUnknown<T> extends true ? undefined : T
 type IsOnlyUndefined<T> = [Exclude<T, undefined>] extends [never] ? true : false
@@ -12,11 +17,17 @@ type InferPluginPropInput<TProp extends ErrorPluginPropOptions<any, any, any, an
   ? NormalizeUnknownToUndefined<InferFirstArg<TInit>>
   : undefined
 type ErrorPluginPropInit<TInputValue, TOutputValue> = ((input: TInputValue) => TOutputValue) | (() => TOutputValue)
-type ErrorPluginPropSerialize<TOutputValue, TError extends Error0> =
-  | ((options: { value: TOutputValue; error: TError; isPublic: boolean }) => unknown)
+type ErrorPluginPropSerialize<TOutputValue, TError extends Error0, TResolveValue extends TOutputValue | undefined> =
+  | ((options: {
+      own: TOutputValue | undefined
+      flow: Array<TOutputValue | undefined>
+      resolved: TResolveValue
+      error: TError
+      isPublic: boolean
+    }) => unknown)
   | false
 type ErrorPluginPropDeserialize<TOutputValue> =
-  | ((options: { value: unknown; serialized: Record<string, unknown> }) => TOutputValue | undefined)
+  | ((options: { value: unknown; record: Record<string, unknown> }) => TOutputValue | undefined)
   | false
 type ErrorPluginPropOptionsBase<TOutputValue, TError extends Error0, TResolveValue extends TOutputValue | undefined> = {
   resolve: (options: {
@@ -24,7 +35,7 @@ type ErrorPluginPropOptionsBase<TOutputValue, TError extends Error0, TResolveVal
     flow: Array<TOutputValue | undefined>
     error: TError
   }) => TResolveValue
-  serialize: ErrorPluginPropSerialize<TResolveValue, TError>
+  serialize: ErrorPluginPropSerialize<TOutputValue, TError, TResolveValue>
   deserialize: ErrorPluginPropDeserialize<TOutputValue>
 }
 type ErrorPluginPropOptionsWithInit<
@@ -749,7 +760,7 @@ export class Error0 extends Error {
         continue
       }
       try {
-        const value = prop.deserialize({ value: errorRecord[key], serialized: errorRecord })
+        const value = prop.deserialize({ value: errorRecord[key], record: errorRecord })
         ;(recreated as unknown as Record<string, unknown>)[key] = value
       } catch {
         // eslint-disable-next-line no-console
@@ -1032,8 +1043,24 @@ export class Error0 extends Error {
         continue
       }
       try {
-        const value = resolvedRecord[key]
-        const jsonValue = prop.serialize({ value, error: error0, isPublic })
+        const options = Object.defineProperties(
+          {
+            error: error0,
+            isPublic,
+          },
+          {
+            own: {
+              get: () => error0.own(key as never),
+            },
+            flow: {
+              get: () => error0.flow(key as never),
+            },
+            resolved: {
+              get: () => resolvedRecord[key],
+            },
+          },
+        )
+        const jsonValue = prop.serialize(options as never)
         if (jsonValue !== undefined) {
           json[key] = jsonValue
         }

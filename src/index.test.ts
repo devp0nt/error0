@@ -24,7 +24,7 @@ describe('Error0', () => {
     .prop('status', {
       init: (input: number) => input,
       resolve: ({ flow }) => flow.find(Boolean),
-      serialize: ({ value }) => value,
+      serialize: ({ resolved }) => resolved,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
     })
     .method('isStatus', (error, status: number) => error.status === status)
@@ -34,7 +34,7 @@ describe('Error0', () => {
   const codePlugin = Error0.plugin().use('prop', 'code', {
     init: (input: Code) => input,
     resolve: ({ flow }) => flow.find(Boolean),
-    serialize: ({ value, isPublic }) => (isPublic ? undefined : value),
+    serialize: ({ resolved, isPublic }) => (isPublic ? undefined : resolved),
     deserialize: ({ value }) =>
       typeof value === 'string' && codes.includes(value as Code) ? (value as Code) : undefined,
   })
@@ -56,7 +56,7 @@ describe('Error0', () => {
     const AppError = Error0.use('prop', 'status', {
       init: (input: number) => input,
       resolve: ({ flow }) => flow.find(Boolean),
-      serialize: ({ value }) => value,
+      serialize: ({ resolved }) => resolved,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
     })
     const error = new AppError('test', { status: 400 })
@@ -79,7 +79,7 @@ describe('Error0', () => {
       resolve: ({ own, flow }) => {
         return typeof own === 'number' ? own : undefined
       },
-      serialize: ({ value }) => value,
+      serialize: ({ resolved }) => resolved,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
     })
       .use('method', 'isStatus', (error, expectedStatus: number) => error.status === expectedStatus)
@@ -219,7 +219,7 @@ describe('Error0', () => {
       Error0.use('prop', 'stack', {
         init: (input: string) => input,
         resolve: ({ own }) => (typeof own === 'string' ? own : undefined),
-        serialize: ({ value }) => value,
+        serialize: ({ resolved }) => resolved,
         deserialize: ({ value }) => (typeof value === 'string' ? value : undefined),
       }),
     ).toThrow('reserved prop key')
@@ -230,7 +230,7 @@ describe('Error0', () => {
       Error0.plugin().prop('stack', {
         init: (input: string) => input,
         resolve: ({ own }) => (typeof own === 'string' ? own : undefined),
-        serialize: ({ value }) => value,
+        serialize: ({ resolved }) => resolved,
         deserialize: ({ value }) => (typeof value === 'string' ? value : undefined),
       }),
     ).toThrow('reserved prop key')
@@ -240,7 +240,7 @@ describe('Error0', () => {
     expect(() =>
       Error0.use('prop', 'message', {
         resolve: ({ own }) => own as string,
-        serialize: ({ value }) => value,
+        serialize: ({ resolved }) => resolved,
         deserialize: ({ value }) => (typeof value === 'string' ? value : undefined),
       }),
     ).toThrow('reserved prop key')
@@ -250,7 +250,7 @@ describe('Error0', () => {
     expect(() =>
       Error0.plugin().prop('message', {
         resolve: ({ own }) => own as string,
-        serialize: ({ value }) => value,
+        serialize: ({ resolved }) => resolved,
         deserialize: ({ value }) => (typeof value === 'string' ? value : undefined),
       }),
     ).toThrow('reserved prop key')
@@ -315,7 +315,7 @@ describe('Error0', () => {
     const AppError = Error0.use('prop', 'computed', {
       init: () => undefined as number | undefined,
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number'),
-      serialize: ({ value }) => value,
+      serialize: ({ resolved }) => resolved,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
     })
 
@@ -331,7 +331,7 @@ describe('Error0', () => {
   it('prop without init omits constructor input and infers resolve output', () => {
     const AppError = Error0.use('prop', 'statusCode', {
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number'),
-      serialize: ({ value }) => value,
+      serialize: ({ resolved }) => resolved,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
     })
 
@@ -348,7 +348,7 @@ describe('Error0', () => {
     const AppError = Error0.use('prop', 'x', {
       init: (input: number) => input,
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number') || 500,
-      serialize: ({ value }) => value,
+      serialize: ({ resolved }) => resolved,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
     })
 
@@ -362,7 +362,7 @@ describe('Error0', () => {
       init: (input: number) => input,
       // @ts-expect-error - resolve type extends init type
       resolve: ({ flow }) => 'string',
-      serialize: ({ value }) => value,
+      serialize: ({ resolved }) => resolved,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
     })
   })
@@ -371,7 +371,7 @@ describe('Error0', () => {
     const AppError = Error0.use('prop', 'code', {
       init: (input: number | 'fallback') => input,
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number') ?? 500,
-      serialize: ({ value }) => value,
+      serialize: ({ resolved }) => resolved,
       deserialize: ({ value }) => (typeof value === 'number' || value === 'fallback' ? value : undefined),
     })
     const error = new AppError('test')
@@ -392,12 +392,12 @@ describe('Error0', () => {
     const AppError = Error0.use('prop', 'status', {
       init: (input: number) => input,
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number'),
-      serialize: ({ value }) => value,
+      serialize: ({ resolved }) => resolved,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
     }).use('prop', 'code', {
       init: (input: Code) => input,
       resolve: ({ flow }) => flow.find(isCode),
-      serialize: ({ value }) => value,
+      serialize: ({ resolved }) => resolved,
       deserialize: ({ value }) => (value === 'A' || value === 'B' ? value : undefined),
     })
 
@@ -419,12 +419,12 @@ describe('Error0', () => {
     const AppError = Error0.use('prop', 'status', {
       init: (input: number) => input,
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number'),
-      serialize: ({ value }) => value,
+      serialize: ({ resolved }) => resolved,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
     }).use('prop', 'code', {
       init: (input: Code) => input,
       resolve: ({ flow }) => flow.find(isCode),
-      serialize: ({ value }) => value,
+      serialize: ({ resolved }) => resolved,
       deserialize: ({ value }) => (value === 'A' || value === 'B' ? value : undefined),
     })
 
@@ -446,13 +446,13 @@ describe('Error0', () => {
     const AppError = Error0.use('prop', 'status', {
       init: (input: number) => input,
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number') ?? 500,
-      serialize: ({ value }) => value,
+      serialize: ({ resolved }) => resolved,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
     })
       .use('prop', 'code', {
         init: (input: Code) => input,
         resolve: ({ flow }) => flow.find(isCode),
-        serialize: ({ value }) => value,
+        serialize: ({ resolved }) => resolved,
         deserialize: ({ value }) => (value === 'A' || value === 'B' ? value : undefined),
       })
       .use('method', 'isStatus', (error, status: number) => error.status === status)
@@ -473,7 +473,7 @@ describe('Error0', () => {
   it('prop resolved type can be not undefined with init not provided', () => {
     const AppError = Error0.use('prop', 'x', {
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number') || 500,
-      serialize: ({ value }) => value,
+      serialize: ({ resolved }) => resolved,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
     })
 
@@ -485,7 +485,7 @@ describe('Error0', () => {
       init: (input: number) => input,
       // @ts-expect-error - resolve type extends init type
       resolve: ({ flow }) => 'string',
-      serialize: ({ value }) => value,
+      serialize: ({ resolved }) => resolved,
       deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
     })
   })

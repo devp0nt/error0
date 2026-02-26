@@ -6,7 +6,7 @@ describe('expectedPlugin', () => {
   const statusPlugin = Error0.plugin().use('prop', 'status', {
     init: (input: number) => input,
     resolve: ({ flow }) => flow.find((value) => typeof value === 'number'),
-    serialize: ({ value }) => value,
+    serialize: ({ resolved }) => resolved,
     deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
   })
 

@@ -43,7 +43,7 @@ export const metaPlugin = Error0.plugin().use('prop', 'meta', {
     }
     return merged
   },
-  serialize: ({ value, isPublic }) => (isPublic ? undefined : toJsonSafe(value)),
+  serialize: ({ resolved, isPublic }) => (isPublic ? undefined : toJsonSafe(resolved)),
   deserialize: ({ value }) => {
     if (!isMetaRecord(value)) {
       return undefined
