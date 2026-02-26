@@ -5,21 +5,21 @@ export const tagsPlugin = <TTag extends string>({
   tags,
   strict = true,
 }: { isPublic?: boolean; tags?: TTag[] | readonly TTag[]; strict?: boolean } = {}) => {
-  function hasTag(error: Error0, tag: TTag): boolean
-  function hasTag(error: Error0, tag: TTag[], policy: 'every' | 'some'): boolean
-  function hasTag(error: Error0, tag: TTag | TTag[], policy?: 'every' | 'some'): boolean {
-    const tags = (error as any).tags as string[] | undefined
-    if (!tags) {
-      return false
-    }
-    if (Array.isArray(tag)) {
-      if (policy === 'every') {
-        return tag.every((item) => tags.includes(item))
-      }
-      return tag.some((item) => tags.includes(item))
-    }
-    return tags.includes(tag)
-  }
+  // function hasTag(error: Error0, tag: TTag): boolean
+  // function hasTag(error: Error0, tag: TTag[], policy: 'every' | 'some'): boolean
+  // function hasTag(error: Error0, tag: TTag | TTag[], policy?: 'every' | 'some'): boolean {
+  //   const tags = (error as any).tags as string[] | undefined
+  //   if (!tags) {
+  //     return false
+  //   }
+  //   if (Array.isArray(tag)) {
+  //     if (policy === 'every') {
+  //       return tag.every((item) => tags.includes(item))
+  //     }
+  //     return tag.some((item) => tags.includes(item))
+  //   }
+  //   return tags.includes(tag)
+  // }
   const isTag = (value: unknown): value is TTag =>
     typeof value === 'string' && (!tags || !strict || tags.includes(value as TTag))
   return Error0.plugin()
@@ -47,5 +47,17 @@ export const tagsPlugin = <TTag extends string>({
         return value.filter((item) => isTag(item))
       },
     })
-    .method('hasTag', hasTag)
+    .method('hasTag', (error, tag: TTag | TTag[], policy: 'every' | 'some' = 'every'): boolean => {
+      const tags = error.tags
+      if (!tags) {
+        return false
+      }
+      if (Array.isArray(tag)) {
+        if (policy === 'every') {
+          return tag.every((item) => tags.includes(item))
+        }
+        return tag.some((item) => tags.includes(item))
+      }
+      return tags.includes(tag)
+    })
 }

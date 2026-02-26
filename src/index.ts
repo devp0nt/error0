@@ -168,72 +168,78 @@ type ErrorOwnMethods<TPluginsMap extends ErrorPluginsMap> = {
 type ErrorResolveMethods<TPluginsMap extends ErrorPluginsMap> = {
   resolve: () => ErrorResolvedProps<TPluginsMap>
 }
-type BindInstanceMethod<TMethod> = TMethod extends {
-  (error: any, ...args: infer TArgs1): infer TOutput1
-  (error: any, ...args: infer TArgs2): infer TOutput2
-  (error: any, ...args: infer TArgs3): infer TOutput3
-  (error: any, ...args: infer TArgs4): infer TOutput4
-}
-  ? {
-      (...args: TArgs1): TOutput1
-      (...args: TArgs2): TOutput2
-      (...args: TArgs3): TOutput3
-      (...args: TArgs4): TOutput4
-    }
-  : TMethod extends {
-        (error: any, ...args: infer TArgs1): infer TOutput1
-        (error: any, ...args: infer TArgs2): infer TOutput2
-        (error: any, ...args: infer TArgs3): infer TOutput3
-      }
-    ? {
-        (...args: TArgs1): TOutput1
-        (...args: TArgs2): TOutput2
-        (...args: TArgs3): TOutput3
-      }
-    : TMethod extends {
-          (error: any, ...args: infer TArgs1): infer TOutput1
-          (error: any, ...args: infer TArgs2): infer TOutput2
-        }
-      ? {
-          (...args: TArgs1): TOutput1
-          (...args: TArgs2): TOutput2
-        }
-      : TMethod extends (error: any, ...args: infer TArgs) => infer TOutput
-        ? (...args: TArgs) => TOutput
-        : never
-type BindStaticMethod<TMethod> = TMethod extends {
-  (error: any, ...args: infer TArgs1): infer TOutput1
-  (error: any, ...args: infer TArgs2): infer TOutput2
-  (error: any, ...args: infer TArgs3): infer TOutput3
-  (error: any, ...args: infer TArgs4): infer TOutput4
-}
-  ? {
-      (error: unknown, ...args: TArgs1): TOutput1
-      (error: unknown, ...args: TArgs2): TOutput2
-      (error: unknown, ...args: TArgs3): TOutput3
-      (error: unknown, ...args: TArgs4): TOutput4
-    }
-  : TMethod extends {
-        (error: any, ...args: infer TArgs1): infer TOutput1
-        (error: any, ...args: infer TArgs2): infer TOutput2
-        (error: any, ...args: infer TArgs3): infer TOutput3
-      }
-    ? {
-        (error: unknown, ...args: TArgs1): TOutput1
-        (error: unknown, ...args: TArgs2): TOutput2
-        (error: unknown, ...args: TArgs3): TOutput3
-      }
-    : TMethod extends {
-          (error: any, ...args: infer TArgs1): infer TOutput1
-          (error: any, ...args: infer TArgs2): infer TOutput2
-        }
-      ? {
-          (error: unknown, ...args: TArgs1): TOutput1
-          (error: unknown, ...args: TArgs2): TOutput2
-        }
-      : TMethod extends (error: any, ...args: infer TArgs) => infer TOutput
-        ? (error: unknown, ...args: TArgs) => TOutput
-        : never
+// type BindInstanceMethod<TMethod> = TMethod extends {
+//   (error: any, ...args: infer TArgs1): infer TOutput1
+//   (error: any, ...args: infer TArgs2): infer TOutput2
+//   (error: any, ...args: infer TArgs3): infer TOutput3
+//   (error: any, ...args: infer TArgs4): infer TOutput4
+// }
+//   ? {
+//       (...args: TArgs1): TOutput1
+//       (...args: TArgs2): TOutput2
+//       (...args: TArgs3): TOutput3
+//       (...args: TArgs4): TOutput4
+//     }
+//   : TMethod extends {
+//         (error: any, ...args: infer TArgs1): infer TOutput1
+//         (error: any, ...args: infer TArgs2): infer TOutput2
+//         (error: any, ...args: infer TArgs3): infer TOutput3
+//       }
+//     ? {
+//         (...args: TArgs1): TOutput1
+//         (...args: TArgs2): TOutput2
+//         (...args: TArgs3): TOutput3
+//       }
+//     : TMethod extends {
+//           (error: any, ...args: infer TArgs1): infer TOutput1
+//           (error: any, ...args: infer TArgs2): infer TOutput2
+//         }
+//       ? {
+//           (...args: TArgs1): TOutput1
+//           (...args: TArgs2): TOutput2
+//         }
+//       : TMethod extends (error: any, ...args: infer TArgs) => infer TOutput
+//         ? (...args: TArgs) => TOutput
+//         : never
+// type BindStaticMethod<TMethod> = TMethod extends {
+//   (error: any, ...args: infer TArgs1): infer TOutput1
+//   (error: any, ...args: infer TArgs2): infer TOutput2
+//   (error: any, ...args: infer TArgs3): infer TOutput3
+//   (error: any, ...args: infer TArgs4): infer TOutput4
+// }
+//   ? {
+//       (error: unknown, ...args: TArgs1): TOutput1
+//       (error: unknown, ...args: TArgs2): TOutput2
+//       (error: unknown, ...args: TArgs3): TOutput3
+//       (error: unknown, ...args: TArgs4): TOutput4
+//     }
+//   : TMethod extends {
+//         (error: any, ...args: infer TArgs1): infer TOutput1
+//         (error: any, ...args: infer TArgs2): infer TOutput2
+//         (error: any, ...args: infer TArgs3): infer TOutput3
+//       }
+//     ? {
+//         (error: unknown, ...args: TArgs1): TOutput1
+//         (error: unknown, ...args: TArgs2): TOutput2
+//         (error: unknown, ...args: TArgs3): TOutput3
+//       }
+//     : TMethod extends {
+//           (error: any, ...args: infer TArgs1): infer TOutput1
+//           (error: any, ...args: infer TArgs2): infer TOutput2
+//         }
+//       ? {
+//           (error: unknown, ...args: TArgs1): TOutput1
+//           (error: unknown, ...args: TArgs2): TOutput2
+//         }
+//       : TMethod extends (error: any, ...args: infer TArgs) => infer TOutput
+//         ? (error: unknown, ...args: TArgs) => TOutput
+//         : never
+type BindInstanceMethod<TMethod> = TMethod extends (error: any, ...args: infer TArgs) => infer TOutput
+  ? (...args: TArgs) => TOutput
+  : never
+type BindStaticMethod<TMethod> = TMethod extends (error: any, ...args: infer TArgs) => infer TOutput
+  ? (error: unknown, ...args: TArgs) => TOutput
+  : never
 type ErrorMethods<TPluginsMap extends ErrorPluginsMap> = {
   [TKey in keyof TPluginsMap['methods']]: BindInstanceMethod<TPluginsMap['methods'][TKey]['fn']>
 }
