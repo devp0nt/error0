@@ -197,6 +197,9 @@ type ErrorPluginResolved = {
   stack?: ErrorPluginStack
   cause?: ErrorPluginCause
   message?: ErrorPluginMessage
+  propKeys: string[]
+  propEntries: Array<[string, ErrorPluginPropOptions<unknown>]>
+  methodEntries: Array<[string, ErrorPluginMethodFn<unknown>]>
 }
 const RESERVED_STACK_PROP_ERROR = 'Error0: "stack" is a reserved prop key. Use .stack(...) plugin API instead'
 const RESERVED_MESSAGE_PROP_ERROR = 'Error0: "message" is a reserved prop key. Use .message(...) plugin API instead'
@@ -497,6 +500,7 @@ export class Error0 extends Error {
   static readonly __pluginsMap?: EmptyPluginsMap
   readonly __pluginsMap?: EmptyPluginsMap
   protected static _plugins: ErrorPlugin[] = []
+  protected static _resolvedPlugin?: ErrorPluginResolved
 
   private static readonly _emptyPlugin: ErrorPluginResolved = {
     props: {},
@@ -505,35 +509,82 @@ export class Error0 extends Error {
     stack: undefined,
     cause: undefined,
     message: undefined,
+    propKeys: [],
+    propEntries: [],
+    methodEntries: [],
+  }
+
+  private static _indexResolvedPlugin(
+    resolved: Omit<ErrorPluginResolved, 'propKeys' | 'propEntries' | 'methodEntries'>,
+  ): ErrorPluginResolved {
+    return {
+      ...resolved,
+      propKeys: Object.keys(resolved.props),
+      propEntries: Object.entries(resolved.props),
+      methodEntries: Object.entries(resolved.methods),
+    }
+  }
+
+  private static _applyPlugin(
+    resolved: Omit<ErrorPluginResolved, 'propKeys' | 'propEntries' | 'methodEntries'>,
+    plugin: ErrorPlugin,
+  ): void {
+    if (plugin.props && 'stack' in plugin.props) {
+      throw new Error(RESERVED_STACK_PROP_ERROR)
+    }
+    if (plugin.props && 'message' in plugin.props) {
+      throw new Error(RESERVED_MESSAGE_PROP_ERROR)
+    }
+    Object.assign(resolved.props, plugin.props ?? this._emptyPlugin.props)
+    Object.assign(resolved.methods, plugin.methods ?? this._emptyPlugin.methods)
+    resolved.adapt.push(...(plugin.adapt ?? this._emptyPlugin.adapt))
+    if (typeof plugin.stack !== 'undefined') {
+      resolved.stack = plugin.stack
+    }
+    if (typeof plugin.cause !== 'undefined') {
+      resolved.cause = plugin.cause
+    }
+    if (typeof plugin.message !== 'undefined') {
+      resolved.message = plugin.message
+    }
+  }
+
+  private static _mergeResolvedPlugin(this: typeof Error0, base: ErrorPluginResolved, plugin: ErrorPlugin): ErrorPluginResolved {
+    const merged: Omit<ErrorPluginResolved, 'propKeys' | 'propEntries' | 'methodEntries'> = {
+      props: { ...base.props },
+      methods: { ...base.methods },
+      adapt: [...base.adapt],
+      stack: base.stack,
+      cause: base.cause,
+      message: base.message,
+    }
+    this._applyPlugin(merged, plugin)
+    return this._indexResolvedPlugin(merged)
   }
 
   private static _getResolvedPlugin(this: typeof Error0): ErrorPluginResolved {
+    if (Object.prototype.hasOwnProperty.call(this, '_resolvedPlugin') && this._resolvedPlugin) {
+      return this._resolvedPlugin
+    }
     const resolved: ErrorPluginResolved = {
       props: {},
       methods: {},
       adapt: [],
+      propKeys: [],
+      propEntries: [],
+      methodEntries: [],
     }
     for (const plugin of this._plugins) {
-      if (plugin.props && 'stack' in plugin.props) {
-        throw new Error(RESERVED_STACK_PROP_ERROR)
-      }
-      if (plugin.props && 'message' in plugin.props) {
-        throw new Error(RESERVED_MESSAGE_PROP_ERROR)
-      }
-      Object.assign(resolved.props, plugin.props ?? this._emptyPlugin.props)
-      Object.assign(resolved.methods, plugin.methods ?? this._emptyPlugin.methods)
-      resolved.adapt.push(...(plugin.adapt ?? this._emptyPlugin.adapt))
-      if (typeof plugin.stack !== 'undefined') {
-        resolved.stack = plugin.stack
-      }
-      if (typeof plugin.cause !== 'undefined') {
-        resolved.cause = plugin.cause
-      }
-      if (typeof plugin.message !== 'undefined') {
-        resolved.message = plugin.message
-      }
+      this._applyPlugin(resolved, plugin)
     }
-    return resolved
+    const indexed = this._indexResolvedPlugin(resolved)
+    Object.defineProperty(this, '_resolvedPlugin', {
+      value: indexed,
+      writable: true,
+      enumerable: false,
+      configurable: true,
+    })
+    return indexed
   }
 
   constructor(message: string, input?: ErrorInput<EmptyPluginsMap>)
@@ -630,7 +681,7 @@ export class Error0 extends Error {
     if (key === undefined) {
       const ownValues: Record<string, unknown> = {}
       const plugin = this._getResolvedPlugin()
-      for (const ownKey of Object.keys(plugin.props)) {
+      for (const ownKey of plugin.propKeys) {
         ownValues[ownKey] = this._ownByKey(error0, ownKey)
       }
       return ownValues
@@ -670,26 +721,22 @@ export class Error0 extends Error {
 
   static _resolveByKey(error: Error0, key: string, plugin: ErrorPluginResolved): unknown {
     try {
-      // resolved[key] = (error0 as unknown as Record<string, unknown>)[key]
-      const options = Object.defineProperties(
-        {
-          error,
+      const options = {
+        get own() {
+          return error.own(key as never)
         },
-        {
-          own: {
-            get: () => error.own(key as never),
-          },
-          flow: {
-            get: () => error.flow(key as never),
-          },
+        get flow() {
+          return error.flow(key as never)
         },
-      )
-      const resolver = plugin.props[key].resolve
+        error,
+      }
+      const prop = plugin.props[key]
+      const resolver = prop.resolve
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!resolver) {
         return (error as any)[key]
       }
-      return plugin.props[key].resolve(options as ErrorPluginPropOptionsResolveOptions<any, any>)
+      return resolver(options as ErrorPluginPropOptionsResolveOptions<any, any>)
     } catch {
       // eslint-disable-next-line no-console
       console.error(`Error0: failed to resolve property ${key}`, error)
@@ -703,7 +750,7 @@ export class Error0 extends Error {
     const error0 = this.from(error)
     const resolved: Record<string, unknown> = {}
     const plugin = this._getResolvedPlugin()
-    for (const key of Object.keys(plugin.props)) {
+    for (const key of plugin.propKeys) {
       resolved[key] = this._resolveByKey(error0, key, plugin)
     }
     return resolved
@@ -787,8 +834,7 @@ export class Error0 extends Error {
     const errorRecord = error as Record<string, unknown>
     const recreated = new this(message)
     const plugin = this._getResolvedPlugin()
-    const propsEntries = Object.entries(plugin.props)
-    for (const [key, prop] of propsEntries) {
+    for (const [key, prop] of plugin.propEntries) {
       if (prop.deserialize === false) {
         continue
       }
@@ -853,9 +899,9 @@ export class Error0 extends Error {
     const Base = this as unknown as typeof Error0
     const Error0Extended = class Error0 extends Base {}
     ;(Error0Extended as typeof Error0)._plugins = [...Base._plugins, plugin]
-
-    const resolved = (Error0Extended as typeof Error0)._getResolvedPlugin()
-    for (const [key, method] of Object.entries(resolved.methods)) {
+    const resolved = this._mergeResolvedPlugin(Base._getResolvedPlugin(), plugin)
+    ;(Error0Extended as typeof Error0)._resolvedPlugin = resolved
+    for (const [key, method] of resolved.methodEntries) {
       Object.defineProperty((Error0Extended as typeof Error0).prototype, key, {
         value: function (...args: unknown[]) {
           return method(this as Error0, ...args)
@@ -1066,34 +1112,32 @@ export class Error0 extends Error {
     }
     const json: Record<string, unknown> = {
       name: error0.name,
-      message: serializedMessage,
       // we do not serialize causes, it is enough that we have floated props and adapt helper
       // cause: error0.cause,
     }
+    if (serializedMessage !== undefined) {
+      json.message = serializedMessage
+    }
 
-    const propsEntries = Object.entries(plugin.props)
-    for (const [key, prop] of propsEntries) {
+    for (const [key, prop] of plugin.propEntries) {
       if (prop.serialize === false) {
         continue
       }
       try {
-        const options = Object.defineProperties(
-          {
-            error: error0,
-            isPublic,
+        const getResolved = (): unknown => this._resolveByKey(error0, key, plugin)
+        const options = {
+          get own() {
+            return error0.own(key as never)
           },
-          {
-            own: {
-              get: () => error0.own(key as never),
-            },
-            flow: {
-              get: () => error0.flow(key as never),
-            },
-            resolved: {
-              get: () => this._resolveByKey(error0, key, plugin),
-            },
+          get flow() {
+            return error0.flow(key as never)
           },
-        )
+          get resolved() {
+            return getResolved()
+          },
+          error: error0,
+          isPublic,
+        }
         const jsonValue = prop.serialize(options as ErrorPluginPropSerializeOptions<any, any, any>)
         if (jsonValue !== undefined) {
           json[key] = jsonValue
@@ -1134,10 +1178,7 @@ export class Error0 extends Error {
         console.error('Error0: failed to serialize cause', error0)
       }
     }
-    return Object.fromEntries(Object.entries(json).filter(([, value]) => value !== undefined)) as Record<
-      string,
-      unknown
-    >
+    return json
   }
 
   serialize(isPublic = true): Record<string, unknown> {
