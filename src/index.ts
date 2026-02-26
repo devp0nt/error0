@@ -908,15 +908,8 @@ export class Error0 extends Error {
         console.error(`Error0: failed to deserialize property ${key}`, errorRecord)
       }
     }
-    if ('stack' in errorRecord) {
-      try {
-        if (typeof errorRecord.stack === 'string') {
-          recreated.stack = errorRecord.stack
-        }
-      } catch {
-        // eslint-disable-next-line no-console
-        console.error('Error0: failed to deserialize stack', errorRecord)
-      }
+    if ('stack' in errorRecord && typeof errorRecord.stack === 'string') {
+      recreated.stack = errorRecord.stack
     }
     const causePlugin = plugin.cause
     if (causePlugin && 'cause' in errorRecord) {
