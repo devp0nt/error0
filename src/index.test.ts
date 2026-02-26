@@ -683,16 +683,18 @@ describe('Error0', () => {
     expect(elapsedMs).toBeLessThan(budgetMs)
   })
 
-  // it('Error0 assignable to LikeError0', () => {
-  //   type LikeError0 = {
-  //     from: (error: unknown) => Error
-  //     serialize: (error: Error) => Record<string, unknown>
-  //   }
-  //   expectTypeOf<typeof Error0>().toExtend<LikeError0>()
-  //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  //   const AppError = Error0.use(statusPlugin)
-  //   expectTypeOf<typeof AppError>().toExtend<LikeError0>()
-  // })
+  it('class can be created extended from Error0', () => {
+    const Base = Error0.use(statusPlugin).use(codePlugin)
+    class MyError extends Base {
+      isStatusAndCode(status: number, code: string): boolean {
+        return this.status === status && this.code === code
+      }
+    }
+    const error = new MyError('test', { status: 400, code: 'NOT_FOUND' })
+    expect(error.isStatusAndCode(400, 'NOT_FOUND')).toBe(true)
+    expect(error.isStatusAndCode(400, 'BAD_REQUEST')).toBe(false)
+    expectTypeOf<typeof MyError>().toExtend<typeof Base>()
+  })
 
   it('Error0 assignable to LikeError0', () => {
     class MyError extends Error {
