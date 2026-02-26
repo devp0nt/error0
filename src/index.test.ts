@@ -684,8 +684,7 @@ describe('Error0', () => {
   })
 
   it('class can be created extended from Error0', () => {
-    const Base = Error0.use(statusPlugin).use(codePlugin)
-    class MyError extends Base {
+    class MyError extends Error0.use(statusPlugin).use(codePlugin) {
       isStatusAndCode(status: number, code: string): boolean {
         return this.status === status && this.code === code
       }
@@ -693,7 +692,7 @@ describe('Error0', () => {
     const error = new MyError('test', { status: 400, code: 'NOT_FOUND' })
     expect(error.isStatusAndCode(400, 'NOT_FOUND')).toBe(true)
     expect(error.isStatusAndCode(400, 'BAD_REQUEST')).toBe(false)
-    expectTypeOf<typeof MyError>().toExtend<typeof Base>()
+    expectTypeOf<typeof MyError>().toExtend<ClassError0>()
   })
 
   it('Error0 assignable to LikeError0', () => {
