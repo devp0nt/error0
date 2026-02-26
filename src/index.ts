@@ -605,7 +605,7 @@ export class Error0 extends Error {
     const ownStore = Object.create(null) as ErrorOwnStore
     Object.defineProperty(this, OWN_SYMBOL, { value: ownStore, writable: true, enumerable: false, configurable: true })
 
-    for (const [key, prop] of Object.entries(plugin.props)) {
+    for (const [key, prop] of plugin.propEntries) {
       if (key === 'stack') {
         continue
       }
@@ -665,9 +665,12 @@ export class Error0 extends Error {
     return undefined
   }
   private static _flowByKey(error: object, key: string): unknown[] {
-    return this.causes(error, true).map((cause) => {
-      return this._ownByKey(cause, key)
-    })
+    const causes = this.causes(error, true)
+    const values = new Array<unknown>(causes.length)
+    for (let i = 0; i < causes.length; i += 1) {
+      values[i] = this._ownByKey(causes[i], key)
+    }
+    return values
   }
 
   static own<TThis extends typeof Error0>(this: TThis, error: unknown): ErrorOwnProps<PluginsMapOf<TThis>>
@@ -1099,6 +1102,8 @@ export class Error0 extends Error {
   static serialize(error: unknown, isPublic = true): Record<string, unknown> {
     const error0 = this.from(error)
     const plugin = this._getResolvedPlugin()
+    const resolveByKey = (targetError: Error0, key: string, targetPlugin: ErrorPluginResolved): unknown =>
+      this._resolveByKey(targetError, key, targetPlugin)
     const messagePlugin = plugin.message
     let serializedMessage: unknown = error0.message
     try {
@@ -1124,7 +1129,6 @@ export class Error0 extends Error {
         continue
       }
       try {
-        const getResolved = (): unknown => this._resolveByKey(error0, key, plugin)
         const options = {
           get own() {
             return error0.own(key as never)
@@ -1133,7 +1137,7 @@ export class Error0 extends Error {
             return error0.flow(key as never)
           },
           get resolved() {
-            return getResolved()
+            return resolveByKey(error0, key, plugin)
           },
           error: error0,
           isPublic,
