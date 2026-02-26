@@ -4,7 +4,7 @@ export const tagsPlugin = <TTag extends string>({
   hideWhenPublic = true,
   tags,
   strict = true,
-}: { hideWhenPublic?: boolean; tags?: TTag[]; strict?: boolean } = {}) => {
+}: { hideWhenPublic?: boolean; tags?: TTag[] | readonly TTag[]; strict?: boolean } = {}) => {
   function hasTag(error: Error0, tag: TTag): boolean
   function hasTag(error: Error0, tag: TTag[], policy: 'every' | 'some'): boolean
   function hasTag(error: Error0, tag: TTag | TTag[], policy?: 'every' | 'some'): boolean {
