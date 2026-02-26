@@ -692,6 +692,7 @@ describe('Error0', () => {
     const error = new MyError('test', { status: 400, code: 'NOT_FOUND' })
     expect(error.isStatusAndCode(400, 'NOT_FOUND')).toBe(true)
     expect(error.isStatusAndCode(400, 'BAD_REQUEST')).toBe(false)
+    expect(error.name).toBe('Error0')
     expectTypeOf<typeof MyError>().toExtend<ClassError0>()
   })
 
