@@ -1,5 +1,3 @@
-// Эррор плагины все с намтройками
-
 type IsUnknown<T> = unknown extends T ? ([T] extends [unknown] ? true : false) : false
 type NormalizeUnknownToUndefined<T> = IsUnknown<T> extends true ? undefined : T
 type IsOnlyUndefined<T> = [Exclude<T, undefined>] extends [never] ? true : false
