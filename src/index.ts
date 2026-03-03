@@ -1,9 +1,3 @@
-// Проверить как в браузере такая ошибка выводится
-
-// ? стек плагин переименовать в просто стек плагин и там добавить опцию для мержа и не мержа, чтобы можно было изПаблик там легко определять
-// ? В эрор0 добавить тоже срезку тчк сервер после которой для клиента всё обрежется, потому резолв всегда может быть андефайнед
-// ? В эррор0 добавить вайт/бан плагин
-
 type IsUnknown<T> = unknown extends T ? ([T] extends [unknown] ? true : false) : false
 type NormalizeUnknownToUndefined<T> = IsUnknown<T> extends true ? undefined : T
 type IsOnlyUndefined<T> = [Exclude<T, undefined>] extends [never] ? true : false
