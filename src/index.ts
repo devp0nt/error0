@@ -1,3 +1,17 @@
+// __ERROR0_FIX_STACKTRACE__
+// Юз должен мочь принять фалси вэлью, тогда резолвед должен быть резолвед или андефайнед
+// _ и там хранить все оун переменные можено через визибл фалс сделать невидимыми
+// спрятать __pluginsMap
+// Разобраться с выводом ошибки в консоль
+// Проверить как в браузере такая ошибка выводится
+// .assign() → set fields to error
+// ? стек плагин переименовать в просто стек плагин и там добавить опцию для мержа и не мержа, чтобы можно было изПаблик там легко определять
+// Добавить кеш на резолвед, который сбрасывается при оверрайдах
+// Добавить метод флэт, который вернёт новую ошибку но все резолведы добавит в оун (можно передать тру, чтобы отрезать и каузы к тому же) (тру чтобы оставить)
+
+// TODO: В эрор0 добавить тоже срезку тчк сервер после которой для клиента всё обрежется, потому резолв всегда может быть андефайнед
+// TODO: В эррор0 добавить вайт/бан плагин
+
 type IsUnknown<T> = unknown extends T ? ([T] extends [unknown] ? true : false) : false
 type NormalizeUnknownToUndefined<T> = IsUnknown<T> extends true ? undefined : T
 type IsOnlyUndefined<T> = [Exclude<T, undefined>] extends [never] ? true : false
@@ -62,6 +76,40 @@ export type ErrorPluginPropOptions<
 > =
   | ErrorPluginPropOptionsWithInit<TInputValue, TOutputValue, TError, TResolveValue>
   | ErrorPluginPropOptionsWithoutInit<TOutputValue, TError, TResolveValue>
+
+type ErrorPluginPropOptionsBaseDefinition<
+  TOutputValue,
+  TError extends Error0,
+  TResolveValue extends TOutputValue | undefined,
+> = {
+  resolve?: ((options: ErrorPluginPropOptionsResolveOptions<TOutputValue, TError>) => TResolveValue) | true
+  serialize: ErrorPluginPropSerialize<TOutputValue, TError, TResolveValue>
+  deserialize: ErrorPluginPropDeserialize<TOutputValue>
+}
+type ErrorPluginPropOptionsWithInitDefinition<
+  TInputValue,
+  TOutputValue,
+  TError extends Error0,
+  TResolveValue extends TOutputValue | undefined,
+> = ErrorPluginPropOptionsBaseDefinition<TOutputValue, TError, TResolveValue> & {
+  init: ErrorPluginPropInit<TInputValue, TOutputValue>
+}
+type ErrorPluginPropOptionsWithoutInitDefinition<
+  TOutputValue,
+  TError extends Error0,
+  TResolveValue extends TOutputValue | undefined,
+> = ErrorPluginPropOptionsBaseDefinition<TOutputValue, TError, TResolveValue> & {
+  init?: undefined
+}
+type ErrorPluginPropOptionsDefinition<
+  TInputValue = undefined,
+  TOutputValue = unknown,
+  TError extends Error0 = Error0,
+  TResolveValue extends TOutputValue | undefined = TOutputValue | undefined,
+> =
+  | ErrorPluginPropOptionsWithInitDefinition<TInputValue, TOutputValue, TError, TResolveValue>
+  | ErrorPluginPropOptionsWithoutInitDefinition<TOutputValue, TError, TResolveValue>
+
 export type ErrorPluginMethodFn<TOutputValue, TArgs extends unknown[] = unknown[], TError extends Error0 = Error0> = (
   error: TError,
   ...args: TArgs
@@ -269,6 +317,25 @@ type ErrorPluginResolved = {
 const RESERVED_STACK_PROP_ERROR = 'Error0: "stack" is a reserved prop key. Use .stack(...) plugin API instead'
 const RESERVED_MESSAGE_PROP_ERROR = 'Error0: "message" is a reserved prop key. Use .message(...) plugin API instead'
 
+const fromPropOptionsDefinition = (
+  options: ErrorPluginPropOptionsDefinition<any, any, any, any>,
+): ErrorPluginPropOptions<any, any, any, any> => {
+  let resolver: ErrorPluginPropOptions<unknown>['resolve']
+  if (!options.resolve) {
+    resolver = (options: ErrorPluginPropOptionsResolveOptions<any, any>) => options.own
+  } else if (options.resolve === true) {
+    resolver = (options: ErrorPluginPropOptionsResolveOptions<any, any>) => options.flow.find((v) => v !== undefined)
+  } else if (typeof options.resolve === 'function') {
+    resolver = options.resolve
+  } else {
+    throw new Error('Invalid resolve option')
+  }
+  return {
+    ...options,
+    resolve: resolver,
+  }
+}
+
 type PluginPropsMapOf<TPlugin extends ErrorPlugin> = {
   [TKey in keyof NonNullable<TPlugin['props']>]: NonNullable<TPlugin['props']>[TKey] extends ErrorPluginPropOptions<
     any,
@@ -372,7 +439,7 @@ export class PluginError0<
     TResolveValue extends TOutputValue | undefined = TOutputValue | undefined,
   >(
     key: TKey,
-    value: ErrorPluginPropOptions<TInputValue, TOutputValue, BuilderError0<TProps, TMethods>, TResolveValue>,
+    value: ErrorPluginPropOptionsDefinition<TInputValue, TOutputValue, BuilderError0<TProps, TMethods>, TResolveValue>,
   ): PluginError0<AddPropToPluginProps<TProps, TKey, TInputValue, TOutputValue, TResolveValue>, TMethods> {
     return this.use('prop', key, value)
   }
@@ -410,7 +477,7 @@ export class PluginError0<
   >(
     kind: 'prop',
     key: TKey,
-    value: ErrorPluginPropOptions<TInputValue, TOutputValue, BuilderError0<TProps, TMethods>, TResolveValue>,
+    value: ErrorPluginPropOptionsDefinition<TInputValue, TOutputValue, BuilderError0<TProps, TMethods>, TResolveValue>,
   ): PluginError0<AddPropToPluginProps<TProps, TKey, TInputValue, TOutputValue, TResolveValue>, TMethods>
   use<TKey extends string, TMethod extends (error: BuilderError0<TProps, TMethods>, ...args: any[]) => any>(
     kind: 'method',
@@ -427,7 +494,7 @@ export class PluginError0<
   use(
     kind: 'prop' | 'method' | 'adapt' | 'stack' | 'cause' | 'message',
     keyOrValue: unknown,
-    value?: ErrorPluginPropOptions<unknown, unknown, any> | ErrorPluginMethodFn<unknown, unknown[], any>,
+    value?: ErrorPluginPropOptionsDefinition<unknown, unknown, any> | ErrorPluginMethodFn<unknown, unknown[], any>,
   ): PluginError0<any, any> {
     const nextProps: ErrorPluginProps = { ...(this._plugin.props ?? {}) }
     const nextMethods: ErrorPluginMethods = { ...(this._plugin.methods ?? {}) }
@@ -446,7 +513,7 @@ export class PluginError0<
       if (value === undefined) {
         throw new Error('PluginError0.use("prop", key, value) requires value')
       }
-      nextProps[key] = value as ErrorPluginPropOptions<any, any>
+      nextProps[key] = fromPropOptionsDefinition(value as ErrorPluginPropOptionsDefinition<any, any>)
     } else if (kind === 'method') {
       const key = keyOrValue as string
       if (value === undefined) {
@@ -1051,7 +1118,12 @@ export class Error0 extends Error {
     this: TThis,
     kind: 'prop',
     key: TKey,
-    value: ErrorPluginPropOptions<TInputValue, TOutputValue, ErrorInstanceOfMap<PluginsMapOf<TThis>>, TResolveValue>,
+    value: ErrorPluginPropOptionsDefinition<
+      TInputValue,
+      TOutputValue,
+      ErrorInstanceOfMap<PluginsMapOf<TThis>>,
+      TResolveValue
+    >,
   ): ClassError0<ExtendErrorPluginsMapWithProp<PluginsMapOf<TThis>, TKey, TInputValue, TOutputValue, TResolveValue>>
   static use<
     TThis extends typeof Error0,
@@ -1087,7 +1159,7 @@ export class Error0 extends Error {
     this: typeof Error0,
     first: PluginError0 | 'prop' | 'method' | 'adapt' | 'stack' | 'cause' | 'message',
     key?: unknown,
-    value?: ErrorPluginPropOptions<unknown> | ErrorPluginMethodFn<unknown>,
+    value?: ErrorPluginPropOptionsDefinition<unknown> | ErrorPluginMethodFn<unknown>,
   ): ClassError0 {
     if (first instanceof PluginError0) {
       return this._useWithPlugin(this._pluginFromBuilder(first))
@@ -1150,7 +1222,7 @@ export class Error0 extends Error {
         throw new Error(RESERVED_MESSAGE_PROP_ERROR)
       }
       return this._useWithPlugin({
-        props: { [key]: value as ErrorPluginPropOptions<unknown> },
+        props: { [key]: fromPropOptionsDefinition(value as ErrorPluginPropOptionsDefinition<any, any>) },
       })
     }
     return this._useWithPlugin({

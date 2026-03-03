@@ -13,7 +13,6 @@
     "allowImportingTsExtensions": false,
     "noEmit": true,
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": false,
     "isolatedModules": true,
     "strict": true,
     "noImplicitReturns": true,

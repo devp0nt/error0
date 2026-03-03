@@ -83,6 +83,7 @@
     "types:build": "tsc --noEmit --project tsconfig.build.json",
     "types:dev": "tsc --noEmit",
     "types": "bun run types:dev",
+    "typesgo": "tsgo --noEmit",
     "pack:dry": "npm pack --dry-run",
     "pack:dist": "mkdir -p dist-npm && npm pack --pack-destination dist-npm --silent && cd dist-npm && tar -xzf *.tgz && cp -r package/* . && rm -rf package && rm *.tgz",
     "pack:dist:hard": "rimraf dist-npm && bun run pack:dist",
@@ -109,6 +110,7 @@
     "eslint-config-love": "^130.0.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-no-only-tests": "^3.3.0",
+    "@typescript/native-preview": "^7.0.0-dev.20260219.1",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.1",
     "lodash": "^4.17.21",
@@ -117,7 +119,7 @@
     "semantic-release": "^25.0.2",
     "tsc-watch": "^7.1.1",
     "tsup": "^8.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=18.0.0",
