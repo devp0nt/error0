@@ -38,7 +38,6 @@ describe('tagsPlugin', () => {
   it('filters tags not in the allow-list when strict is true', () => {
     const AppError = Error0.use(tagsPlugin({ tags: [...tags], strict: true }))
     const recreated = AppError.from({
-      name: 'Error0',
       message: 'test',
       tags: ['db', 'invalid', 123],
     })
@@ -48,7 +47,6 @@ describe('tagsPlugin', () => {
   it('keeps all string tags when strict is false', () => {
     const AppError = Error0.use(tagsPlugin({ tags: [...tags], strict: false }))
     const recreated = AppError.from({
-      name: 'Error0',
       message: 'test',
       tags: ['db', 'custom', 123],
     })

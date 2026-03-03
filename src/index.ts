@@ -859,7 +859,14 @@ export class Error0 extends Error {
   }
 
   static isSerialized(error: unknown): error is Record<string, unknown> {
-    return !this.is(error) && typeof error === 'object' && error !== null && 'name' in error && error.name === 'Error0'
+    return (
+      !this.is(error) &&
+      !(error instanceof Error) &&
+      typeof error === 'object' &&
+      error !== null &&
+      'message' in error &&
+      typeof error.message === 'string'
+    )
   }
 
   static from<TThis extends typeof Error0>(this: TThis, error: unknown): InstanceType<TThis>
@@ -1194,9 +1201,7 @@ export class Error0 extends Error {
       console.error('Error0: failed to serialize message', error0)
       serializedMessage = error0.message
     }
-    const json: Record<string, unknown> = {
-      name: error0.name,
-    }
+    const json: Record<string, unknown> = {}
     if (serializedMessage !== undefined) {
       json.message = serializedMessage
     }
