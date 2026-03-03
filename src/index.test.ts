@@ -333,6 +333,7 @@ describe('Error0', () => {
     expect(error2.code).toBe('NOT_FOUND')
   })
 
+  // it('form, assing, round, flat, and new, return same type and instance', () => {
   it('form, assing, round, and new, return same type and instance', () => {
     const AppError = Error0.use(statusPlugin).use(codePlugin)
     const errorNew = new AppError('test', { status: 401 })
@@ -341,18 +342,35 @@ describe('Error0', () => {
     const errorFrom = AppError.from({})
     const errorRound = AppError.round({})
     const errorRound1 = errorNew.round()
+    // const errorFlat = AppError.flat({})
+    // const errorFlat1 = errorNew.flat()
     expect(errorNew).toBeInstanceOf(AppError)
     expect(errorAssign).toBeInstanceOf(AppError)
     expect(errorAssign1).toBeInstanceOf(AppError)
     expect(errorFrom).toBeInstanceOf(AppError)
     expect(errorRound).toBeInstanceOf(AppError)
     expect(errorRound1).toBeInstanceOf(AppError)
+    // expect(errorFlat).toBeInstanceOf(AppError)
+    // expect(errorFlat1).toBeInstanceOf(AppError)
     expectTypeOf<typeof errorNew>().toEqualTypeOf<typeof errorAssign>()
     expectTypeOf<typeof errorNew>().toEqualTypeOf<typeof errorAssign1>()
     expectTypeOf<typeof errorNew>().toEqualTypeOf<typeof errorFrom>()
     expectTypeOf<typeof errorNew>().toEqualTypeOf<typeof errorRound>()
     expectTypeOf<typeof errorNew>().toEqualTypeOf<typeof errorRound1>()
+    // expectTypeOf<typeof errorNew>().toEqualTypeOf<typeof errorFlat>()
+    // expectTypeOf<typeof errorNew>().toEqualTypeOf<typeof errorFlat1>()
   })
+
+  // it.only('flat merge all resolved values to own and remove causes', () => {
+  //   const AppError = Error0.use(statusPlugin).use(codePlugin)
+  //   const errorDeepDeep = new AppError('test deep deep', { status: 401 })
+  //   const errorDeep = new AppError('test deep', { code: 'NOT_FOUND', cause: errorDeepDeep })
+  //   const error = new AppError('test', { status: 401, cause: errorDeep })
+  //   const flat = error.flat()
+  //   expect(flat.own).toEqual({ status: 401, code: 'NOT_FOUND' })
+  //   expect(flat.cause).toBeUndefined()
+  //   console.error(flat)
+  // })
 
   it('serialize uses identity by default and skips undefined plugin values', () => {
     const AppError = Error0.use(statusPlugin).use('prop', 'code', {

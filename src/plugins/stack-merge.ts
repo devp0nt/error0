@@ -11,10 +11,9 @@ export const stackMergePlugin = ({
       }
       return error
         .causes()
-        .map((cause) => {
-          return cause instanceof Error ? cause.stack : undefined
+        .flatMap((cause) => {
+          return cause instanceof Error && cause.stack && typeof cause.stack === 'string' ? cause.stack : []
         })
-        .filter((value): value is string => typeof value === 'string')
         .join(delimiter)
     },
   })
