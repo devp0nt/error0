@@ -82,9 +82,9 @@ type ErrorPluginPropOptionsBaseDefinition<
   TError extends Error0,
   TResolveValue extends TOutputValue | undefined,
 > = {
-  resolve?: ((options: ErrorPluginPropOptionsResolveOptions<TOutputValue, TError>) => TResolveValue) | true
-  serialize: ErrorPluginPropSerialize<TOutputValue, TError, TResolveValue>
-  deserialize: ErrorPluginPropDeserialize<TOutputValue>
+  resolve?: ((options: ErrorPluginPropOptionsResolveOptions<TOutputValue, TError>) => TResolveValue) | boolean
+  serialize?: ErrorPluginPropSerialize<TOutputValue, TError, TResolveValue>
+  deserialize?: ErrorPluginPropDeserialize<TOutputValue>
 }
 type ErrorPluginPropOptionsWithInitDefinition<
   TInputValue,
@@ -330,9 +330,13 @@ const fromPropOptionsDefinition = (
   } else {
     throw new Error('Invalid resolve option')
   }
+  const serializer: ErrorPluginPropOptions<unknown>['serialize'] = options.serialize ?? false
+  const deserializer: ErrorPluginPropOptions<unknown>['deserialize'] = options.deserialize ?? false
   return {
     ...options,
     resolve: resolver,
+    serialize: serializer,
+    deserialize: deserializer,
   }
 }
 

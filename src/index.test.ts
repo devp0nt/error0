@@ -205,6 +205,21 @@ describe('Error0', () => {
     expect(error.serialize().status).toEqual(400)
   })
 
+  it('without resolve (as false), getter return own value, also resolved value eq to own value', () => {
+    const AppError = Error0.use('prop', 'status', {
+      init: (input: number) => input,
+      resolve: false,
+      serialize: ({ resolved }) => resolved,
+      deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
+    })
+    const error = new AppError('another error', { status: 400 })
+    expect(error.status).toBe(400)
+    expectTypeOf<typeof error.status>().toEqualTypeOf<number | undefined>()
+    expect(error.own('status')).toBe(400)
+    expect(error.flow('status')).toEqual([400])
+    expect(error.serialize().status).toEqual(400)
+  })
+
   it('with resolve true, getter return first not undefined in flow', () => {
     const AppError = Error0.use('prop', 'status', {
       init: (input: number) => input,
@@ -234,6 +249,36 @@ describe('Error0', () => {
     expect(error.own('status')).toBe(400)
     expect(error.flow('status')).toEqual([400])
     expect(error.serialize().status).toEqual(400)
+  })
+
+  it('(plugin) without resolve (as false), getter return own value, also resolved value eq to own value', () => {
+    const statusPlugin = Error0.plugin().prop('status', {
+      init: (input: number) => input,
+      resolve: false,
+      serialize: ({ resolved }) => resolved,
+      deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
+    })
+    const AppError = Error0.use(statusPlugin)
+    const error = new AppError('another error', { status: 400 })
+    expect(error.status).toBe(400)
+    expectTypeOf<typeof error.status>().toEqualTypeOf<number | undefined>()
+    expect(error.own('status')).toBe(400)
+    expect(error.flow('status')).toEqual([400])
+    expect(error.serialize().status).toEqual(400)
+  })
+
+  it('without serailize and deserialize value will not be serialized', () => {
+    const AppError = Error0.use('prop', 'status', {
+      init: (input: number) => input,
+      resolve: true,
+    })
+    const cause = new AppError('another error', { status: 400 })
+    const error = new AppError('test', { cause })
+    expect(error.status).toBe(400)
+    expectTypeOf<typeof error.status>().toEqualTypeOf<number | undefined>()
+    expect(error.own('status')).toBe(undefined)
+    expect(error.flow('status')).toEqual([undefined, 400])
+    expect(error.serialize().status).toEqual(undefined)
   })
 
   it('(plugin) with resolve true, getter return first not undefined in flow', () => {
