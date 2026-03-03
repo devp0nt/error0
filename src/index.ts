@@ -1,5 +1,4 @@
 // Проверить как в браузере такая ошибка выводится
-// Добавить кеш на резолвед, который сбрасывается при оверрайдах
 
 // ? стек плагин переименовать в просто стек плагин и там добавить опцию для мержа и не мержа, чтобы можно было изПаблик там легко определять
 // ? В эрор0 добавить тоже срезку тчк сервер после которой для клиента всё обрежется, потому резолв всегда может быть андефайнед
@@ -712,7 +711,7 @@ export class Error0 extends Error {
         continue
       }
       Object.defineProperty(this, key, {
-        get: () => Error0._resolveByKey(this, key, plugin),
+        get: () => this._resolveByKey(key, plugin),
         set: (value) => {
           this.assign({ [key]: value } as never)
         },
@@ -779,44 +778,53 @@ export class Error0 extends Error {
     return values
   }
 
-  static _resolveByKey(error: Error0, key: string, plugin: ErrorPluginResolved): unknown {
-    try {
-      const options = {
-        get flow() {
-          return error.flow(key as never)
-        },
-        own: error.own?.[key],
-        error,
-      }
-      const prop = plugin.props[key]
-      const resolver = prop.resolve
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (!resolver) {
-        return (error as any)[key]
-      }
-      return resolver(options as ErrorPluginPropOptionsResolveOptions<any, any>)
-    } catch {
-      // eslint-disable-next-line no-console
-      console.error(`Error0: failed to resolve property ${key}`, error)
-      return undefined
+  private readonly _resolveByKeyCache = new Map<string, unknown>()
+  private _resolveByKey(key: string, plugin: ErrorPluginResolved): unknown {
+    // eslint-disable-next-line consistent-this, @typescript-eslint/no-this-alias
+    const error = this
+    if (this._resolveByKeyCache.has(key)) {
+      return this._resolveByKeyCache.get(key)
     }
+    const value = (() => {
+      try {
+        const options = {
+          get flow() {
+            return error.flow(key as never)
+          },
+          own: error.own?.[key],
+          error,
+        }
+        const prop = plugin.props[key]
+        const resolver = prop.resolve
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (!resolver) {
+          return (error as any)[key]
+        }
+        return resolver(options as ErrorPluginPropOptionsResolveOptions<any, any>)
+      } catch {
+        // eslint-disable-next-line no-console
+        console.error(`Error0: failed to resolve property ${key}`, error)
+        return undefined
+      }
+    })()
+    this._resolveByKeyCache.set(key, value)
+    return value
   }
 
   static resolve<TThis extends typeof Error0>(this: TThis, error: unknown): ErrorResolvedProps<PluginsMapOf<TThis>>
   static resolve(error: unknown): Record<string, unknown>
   static resolve(error: unknown): Record<string, unknown> {
-    const error0 = this.from(error)
-    const resolved: Record<string, unknown> = {}
-    const plugin = this._getResolvedPlugin()
-    for (const key of plugin.propKeys) {
-      resolved[key] = this._resolveByKey(error0, key, plugin)
-    }
-    return resolved
+    return this.from(error).resolve()
   }
   resolve<TThis extends Error0>(this: TThis): ErrorResolvedProps<PluginsMapOfInstance<TThis>>
   resolve(): Record<string, unknown> {
     const ctor = this.constructor as typeof Error0
-    return ctor.resolve(this)
+    const plugin = ctor._getResolvedPlugin()
+    const resolved: Record<string, unknown> = {}
+    for (const key of plugin.propKeys) {
+      resolved[key] = this._resolveByKey(key, plugin)
+    }
+    return resolved
   }
 
   static causes(error: unknown, instancesOnly?: false): unknown[]
@@ -920,6 +928,7 @@ export class Error0 extends Error {
   assign<TThis extends Error0>(this: TThis, props: Partial<ErrorOwnProps<PluginsMapOfInstance<TThis>>>): TThis
   assign(props: Record<string, unknown>): this {
     this.own = Object.assign(this.own ?? {}, props)
+    this._resolveByKeyCache.clear()
     // const values = Object.values(props)
     // if (values.every((value) => value === undefined)) {
     //   this.own = undefined
@@ -1172,10 +1181,14 @@ export class Error0 extends Error {
   }
 
   static serialize(error: unknown, isPublic = true): Record<string, unknown> {
-    const error0 = this.from(error)
-    const plugin = this._getResolvedPlugin()
-    const resolveByKey = (targetError: Error0, key: string, targetPlugin: ErrorPluginResolved): unknown =>
-      this._resolveByKey(targetError, key, targetPlugin)
+    return this.from(error).serialize(isPublic)
+  }
+
+  serialize(isPublic = true): Record<string, unknown> {
+    // eslint-disable-next-line consistent-this, @typescript-eslint/no-this-alias
+    const error0 = this
+    const ctor = error0.constructor as typeof Error0
+    const plugin = ctor._getResolvedPlugin()
     const messagePlugin = plugin.message
     let serializedMessage: unknown = error0.message
     try {
@@ -1204,7 +1217,7 @@ export class Error0 extends Error {
             return error0.flow(key as never)
           },
           get resolved() {
-            return resolveByKey(error0, key, plugin)
+            return error0._resolveByKey(key, plugin)
           },
           own: error0.own?.[key],
           error: error0,
@@ -1241,8 +1254,8 @@ export class Error0 extends Error {
           cause: (error0 as { cause?: unknown }).cause,
           error: error0,
           isPublic,
-          is: (cause) => this.is(cause),
-          serialize: (cause) => this.serialize(cause, isPublic),
+          is: (cause) => ctor.is(cause),
+          serialize: (cause) => ctor.serialize(cause, isPublic),
         })
         if (serializedCause !== undefined) {
           json.cause = serializedCause
@@ -1253,10 +1266,5 @@ export class Error0 extends Error {
       }
     }
     return json
-  }
-
-  serialize(isPublic = true): Record<string, unknown> {
-    const ctor = this.constructor as typeof Error0
-    return ctor.serialize(this, isPublic)
   }
 }
