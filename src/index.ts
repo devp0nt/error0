@@ -637,7 +637,7 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
 
 export class Error0 extends Error {
   static readonly __pluginsMap?: EmptyPluginsMap
-  readonly __pluginsMap?: EmptyPluginsMap
+  declare readonly __pluginsMap?: EmptyPluginsMap
   static MAX_CAUSES_DEPTH = 99
   protected static _plugins: ErrorPlugin[] = []
   protected static _resolvedPlugin?: ErrorPluginResolved
