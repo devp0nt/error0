@@ -204,8 +204,11 @@ type ErrorOwnProps<TPluginsMap extends ErrorPluginsMap> = {
   [TKey in keyof TPluginsMap['props']]: TPluginsMap['props'][TKey]['output'] | undefined
 }
 type ErrorOwnMethods<TPluginsMap extends ErrorPluginsMap> = {
-  own?: ErrorOwnProps<TPluginsMap>
+  own?: Partial<ErrorOwnProps<TPluginsMap>>
   flow: <TKey extends keyof TPluginsMap['props'] & string>(key: TKey) => Array<ErrorOwnProps<TPluginsMap>[TKey]>
+  assign: (
+    props: Partial<ErrorOwnProps<TPluginsMap>>,
+  ) => Error0 & ErrorResolved<TPluginsMap> & ErrorResolveMethods<TPluginsMap>
 }
 type ErrorResolveMethods<TPluginsMap extends ErrorPluginsMap> = {
   resolve: () => ErrorResolvedProps<TPluginsMap>
@@ -556,13 +559,8 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
     ErrorOwnMethods<TPluginsMap> &
     ErrorResolveMethods<TPluginsMap> & { readonly __pluginsMap?: TPluginsMap }
   readonly __pluginsMap?: TPluginsMap
-  from: (
-    error: unknown,
-  ) => Error0 & ErrorResolved<TPluginsMap> & ErrorOwnMethods<TPluginsMap> & ErrorResolveMethods<TPluginsMap>
-  round: (
-    error: unknown,
-    isPublic?: boolean,
-  ) => Error0 & ErrorResolved<TPluginsMap> & ErrorOwnMethods<TPluginsMap> & ErrorResolveMethods<TPluginsMap>
+  from: <TThis extends ClassError0<any>>(this: TThis, error: unknown) => InstanceType<TThis>
+  round: <TThis extends ClassError0<any>>(this: TThis, error: unknown, isPublic?: boolean) => InstanceType<TThis>
   causes: {
     (error: unknown, instancesOnly?: false): unknown[]
     (
@@ -572,6 +570,14 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
   }
   resolve: (error: unknown) => ErrorResolvedProps<TPluginsMap>
   serialize: (error: unknown, isPublic?: boolean) => Record<string, unknown>
+  assign: <TThis extends ClassError0<any>>(
+    this: TThis,
+    error: unknown,
+    props: Partial<ErrorOwnProps<PluginsMapOf<TThis>>>,
+  ) => Error0 &
+    ErrorResolved<PluginsMapOf<TThis>> &
+    ErrorOwnMethods<PluginsMapOf<TThis>> &
+    ErrorResolveMethods<PluginsMapOf<TThis>> & { readonly __pluginsMap?: PluginsMapOf<TThis> }
   own: {
     (error: object): ErrorOwnProps<TPluginsMap>
     <TKey extends keyof TPluginsMap['props'] & string>(error: object, key: TKey): ErrorOwnProps<TPluginsMap>[TKey]
@@ -580,24 +586,6 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
     error: object,
     key: TKey,
   ) => Array<ErrorOwnProps<TPluginsMap>[TKey]>
-  // prop: <
-  //   TKey extends string,
-  //   TInputValue = undefined,
-  //   TOutputValue = unknown,
-  //   TResolveValue extends TOutputValue | undefined = TOutputValue | undefined,
-  // >(
-  //   key: TKey,
-  //   value: ErrorPluginPropOptions<TInputValue, TOutputValue, ErrorInstanceOfMap<TPluginsMap>, TResolveValue>,
-  // ) => ClassError0<ExtendErrorPluginsMapWithProp<TPluginsMap, TKey, TInputValue, TOutputValue, TResolveValue>>
-  // method: <TKey extends string, TMethod extends (error: ErrorInstanceOfMap<TPluginsMap>, ...args: any[]) => any>(
-  //   key: TKey,
-  //   value: TMethod,
-  // ) => ClassError0<ExtendErrorPluginsMapWithMethod<TPluginsMap, TKey, TMethod>>
-  // adapt: (
-  //   value: ErrorPluginAdaptFn<ErrorInstanceOfMap<TPluginsMap>, ErrorResolvedProps<TPluginsMap>>,
-  // ) => ClassError0<TPluginsMap>
-  // stack: (value: ErrorPluginStack<ErrorInstanceOfMap<TPluginsMap>>) => ClassError0<TPluginsMap>
-  // cause: (value: ErrorPluginCause<ErrorInstanceOfMap<TPluginsMap>>) => ClassError0<TPluginsMap>
   use: {
     <TBuilder extends PluginError0>(
       plugin: TBuilder,
@@ -931,6 +919,7 @@ export class Error0 extends Error {
     return !this.is(error) && typeof error === 'object' && error !== null && 'name' in error && error.name === 'Error0'
   }
 
+  static from<TThis extends typeof Error0>(this: TThis, error: unknown): InstanceType<TThis>
   static from(error: unknown): Error0 {
     if (this.is(error)) {
       return error
@@ -941,8 +930,41 @@ export class Error0 extends Error {
     return this._fromNonError0(error)
   }
 
+  static round<TThis extends typeof Error0>(this: TThis, error: unknown, isPublic?: boolean): InstanceType<TThis>
   static round(error: unknown, isPublic = false): Error0 {
     return this.from(this.serialize(error, isPublic))
+  }
+  round<TThis extends Error0>(this: TThis, isPublic = true): TThis {
+    const ctor = this.constructor as typeof Error0
+    return ctor.round(this, isPublic) as TThis
+  }
+
+  static assign<TThis extends typeof Error0>(
+    this: TThis,
+    error: unknown,
+    props: Partial<ErrorOwnProps<PluginsMapOf<TThis>>>,
+  ): Error0 &
+    ErrorResolved<PluginsMapOf<TThis>> &
+    ErrorOwnMethods<PluginsMapOf<TThis>> &
+    ErrorResolveMethods<PluginsMapOf<TThis>>
+  static assign(error: unknown, props: Record<string, unknown>): Error0 {
+    const error0 = this.from(error)
+    return error0.assign(props)
+  }
+  assign<TThis extends Error0>(
+    this: TThis,
+    props: Partial<ErrorOwnProps<PluginsMapOfInstance<TThis>>>,
+  ): TThis &
+    ErrorResolved<PluginsMapOfInstance<TThis>> &
+    ErrorOwnMethods<PluginsMapOfInstance<TThis>> &
+    ErrorResolveMethods<PluginsMapOfInstance<TThis>>
+  assign(props: Record<string, unknown>): typeof this {
+    this.own = Object.assign(this.own ?? {}, props)
+    // const values = Object.values(props)
+    // if (values.every((value) => value === undefined)) {
+    //   this.own = undefined
+    // }
+    return this
   }
 
   private static _applyAdapt(error: Error0): Error0 {
@@ -1058,49 +1080,6 @@ export class Error0 extends Error {
       message: pluginRecord._plugin.message,
     }
   }
-
-  // static prop<
-  //   TThis extends typeof Error0,
-  //   TKey extends string,
-  //   TInputValue = undefined,
-  //   TOutputValue = unknown,
-  //   TResolveValue extends TOutputValue | undefined = TOutputValue | undefined,
-  // >(
-  //   this: TThis,
-  //   key: TKey,
-  //   value: ErrorPluginPropOptions<TInputValue, TOutputValue, ErrorInstanceOfMap<PluginsMapOf<TThis>>, TResolveValue>,
-  // ): ClassError0<ExtendErrorPluginsMapWithProp<PluginsMapOf<TThis>, TKey, TInputValue, TOutputValue, TResolveValue>> {
-  //   return this.use('prop', key, value)
-  // }
-
-  // static method<TThis extends typeof Error0, TKey extends string, TMethod extends (error: ErrorInstanceOfMap<PluginsMapOf<TThis>>, ...args: any[]) => any>(
-  //   this: TThis,
-  //   key: TKey,
-  //   value: TMethod,
-  // ): ClassError0<ExtendErrorPluginsMapWithMethod<PluginsMapOf<TThis>, TKey, TMethod>> {
-  //   return this.use('method', key, value)
-  // }
-
-  // static adapt<TThis extends typeof Error0>(
-  //   this: TThis,
-  //   value: ErrorPluginAdaptFn<ErrorInstanceOfMap<PluginsMapOf<TThis>>, ErrorResolvedProps<PluginsMapOf<TThis>>>,
-  // ): ClassError0<PluginsMapOf<TThis>> {
-  //   return this.use('adapt', value)
-  // }
-
-  // static stack<TThis extends typeof Error0>(
-  //   this: TThis,
-  //   value: ErrorPluginStack<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
-  // ): ClassError0<PluginsMapOf<TThis>> {
-  //   return this.use('stack', value)
-  // }
-
-  // static cause<TThis extends typeof Error0>(
-  //   this: TThis,
-  //   value: ErrorPluginCause<ErrorInstanceOfMap<PluginsMapOf<TThis>>>,
-  // ): ClassError0<PluginsMapOf<TThis>> {
-  //   return this.use('cause', value)
-  // }
 
   static use<TThis extends typeof Error0, TBuilder extends PluginError0>(
     this: TThis,
@@ -1319,10 +1298,5 @@ export class Error0 extends Error {
   serialize(isPublic = true): Record<string, unknown> {
     const ctor = this.constructor as typeof Error0
     return ctor.serialize(this, isPublic)
-  }
-
-  round<TThis extends Error0>(this: TThis, isPublic = true): TThis {
-    const ctor = this.constructor as typeof Error0
-    return ctor.round(this, isPublic) as TThis
   }
 }

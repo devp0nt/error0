@@ -298,6 +298,62 @@ describe('Error0', () => {
     expect(error.serialize().status).toEqual(400)
   })
 
+  it('assign props check types', () => {
+    const AppError = Error0.use(statusPlugin).use(codePlugin)
+    const error = new AppError('test', { status: 401 })
+    // @ts-expect-error - code is not match desirecd type
+    error.assign({ code: 'NOT_VALID_CODE' })
+  })
+
+  it('assign props', () => {
+    const AppError = Error0.use(statusPlugin).use(codePlugin)
+    const error = new AppError('test', { status: 401 })
+    const error2 = error.assign({ code: 'NOT_FOUND' })
+    expect(error).toBe(error2)
+    expect(error2.status).toBe(401)
+    expect(error2.code).toBe('NOT_FOUND')
+  })
+
+  it('static assign props check types', () => {
+    const AppError = Error0.use(statusPlugin).use(codePlugin)
+    const error = new AppError('test', { status: 401 })
+    AppError.assign(
+      error,
+      // @ts-expect-error - code is not match desirecd type
+      { code: 'NOT_VALID_CODE' },
+    )
+  })
+
+  it('static assign props', () => {
+    const AppError = Error0.use(statusPlugin).use(codePlugin)
+    const error = new AppError('test', { status: 401 })
+    const error2 = AppError.assign(error, { code: 'NOT_FOUND' })
+    expect(error).toBe(error2)
+    expect(error2.status).toBe(401)
+    expect(error2.code).toBe('NOT_FOUND')
+  })
+
+  it('form, assing, round, and new, return same type and instance', () => {
+    const AppError = Error0.use(statusPlugin).use(codePlugin)
+    const errorNew = new AppError('test', { status: 401 })
+    const errorAssign = AppError.assign({}, { status: 401 })
+    const errorAssign1 = errorNew.assign({})
+    const errorFrom = AppError.from({})
+    const errorRound = AppError.round({})
+    const errorRound1 = errorNew.round()
+    expect(errorNew).toBeInstanceOf(AppError)
+    expect(errorAssign).toBeInstanceOf(AppError)
+    expect(errorAssign1).toBeInstanceOf(AppError)
+    expect(errorFrom).toBeInstanceOf(AppError)
+    expect(errorRound).toBeInstanceOf(AppError)
+    expect(errorRound1).toBeInstanceOf(AppError)
+    expectTypeOf<typeof errorNew>().toEqualTypeOf<typeof errorAssign>()
+    expectTypeOf<typeof errorNew>().toEqualTypeOf<typeof errorAssign1>()
+    expectTypeOf<typeof errorNew>().toEqualTypeOf<typeof errorFrom>()
+    expectTypeOf<typeof errorNew>().toEqualTypeOf<typeof errorRound>()
+    expectTypeOf<typeof errorNew>().toEqualTypeOf<typeof errorRound1>()
+  })
+
   it('serialize uses identity by default and skips undefined plugin values', () => {
     const AppError = Error0.use(statusPlugin).use('prop', 'code', {
       init: (input: string) => input,
