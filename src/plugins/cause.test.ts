@@ -27,7 +27,6 @@ describe('causePlugin', () => {
     const deepCauseError = new AppError('deep cause')
     const causeError = new AppError('cause', { status: 409, code: 'NOT_FOUND', cause: deepCauseError })
     const error = new AppError('root', { status: 500, cause: causeError })
-    // console.error(error)
 
     const json = AppError.serialize(error, false)
     expect(typeof json.cause).toBe('object')

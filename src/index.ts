@@ -1,10 +1,7 @@
 // __ERROR0_FIX_STACKTRACE__
-// Юз должен мочь принять фалси вэлью, тогда резолвед должен быть резолвед или андефайнед
-// _ и там хранить все оун переменные можено через визибл фалс сделать невидимыми
-// спрятать __pluginsMap
-// Разобраться с выводом ошибки в консоль
-// Проверить как в браузере такая ошибка выводится
 // .assign() → set fields to error
+// Юз должен мочь принять фалси вэлью, тогда резолвед должен быть резолвед или андефайнед
+// Проверить как в браузере такая ошибка выводится
 // ? стек плагин переименовать в просто стек плагин и там добавить опцию для мержа и не мержа, чтобы можно было изПаблик там легко определять
 // Добавить кеш на резолвед, который сбрасывается при оверрайдах
 // Добавить метод флэт, который вернёт новую ошибку но все резолведы добавит в оун (можно передать тру, чтобы отрезать и каузы к тому же) (тру чтобы оставить)
@@ -207,10 +204,7 @@ type ErrorOwnProps<TPluginsMap extends ErrorPluginsMap> = {
   [TKey in keyof TPluginsMap['props']]: TPluginsMap['props'][TKey]['output'] | undefined
 }
 type ErrorOwnMethods<TPluginsMap extends ErrorPluginsMap> = {
-  own: {
-    (): ErrorOwnProps<TPluginsMap>
-    <TKey extends keyof TPluginsMap['props'] & string>(key: TKey): ErrorOwnProps<TPluginsMap>[TKey]
-  }
+  own?: ErrorOwnProps<TPluginsMap>
   flow: <TKey extends keyof TPluginsMap['props'] & string>(key: TKey) => Array<ErrorOwnProps<TPluginsMap>[TKey]>
 }
 type ErrorResolveMethods<TPluginsMap extends ErrorPluginsMap> = {
@@ -544,7 +538,6 @@ export class PluginError0<
   }
 }
 
-const OWN_SYMBOL: unique symbol = Symbol('Error0.own')
 type ErrorOwnStore = Record<string, unknown>
 
 export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> = {
@@ -641,6 +634,7 @@ export class Error0 extends Error {
   static MAX_CAUSES_DEPTH = 99
   protected static _plugins: ErrorPlugin[] = []
   protected static _resolvedPlugin?: ErrorPluginResolved
+  declare own?: ErrorOwnStore
 
   private static readonly _emptyPlugin: ErrorPluginResolved = {
     props: {},
@@ -746,8 +740,8 @@ export class Error0 extends Error {
 
     const ctor = this.constructor as typeof Error0
     const plugin = ctor._getResolvedPlugin()
-    const ownStore = Object.create(null) as ErrorOwnStore
-    Object.defineProperty(this, OWN_SYMBOL, { value: ownStore, writable: true, enumerable: false, configurable: true })
+    // const ownStore = Object.create(null) as ErrorOwnStore
+    // Object.defineProperty(this, OWN_SYMBOL, { value: ownStore, writable: true, enumerable: false, configurable: true })
 
     for (const [key, prop] of plugin.propEntries) {
       if (key === 'stack') {
@@ -755,55 +749,57 @@ export class Error0 extends Error {
       }
       Object.defineProperty(this, key, {
         get: () =>
-          prop.resolve({
-            own: ownStore[key],
-            flow: this.flow(key as never),
-            error: this,
-          }),
+          // prop.resolve({
+          //   own: this.own?.[key],
+          //   flow: this.flow(key as never),
+          //   error: this,
+          // }),
+          Error0._resolveByKey(this, key, plugin),
         set: (value) => {
-          ownStore[key] = value
+          this.own = Object.assign(this.own ?? {}, { [key]: value })
         },
         enumerable: true,
         configurable: true,
       })
       if (key in input) {
-        const ownValue = (input as Record<string, unknown>)[key]
-        ownStore[key] = typeof prop.init === 'function' ? prop.init(ownValue) : ownValue
+        const inputValue = (input as Record<string, unknown>)[key]
+        const ownValue = typeof prop.init === 'function' ? prop.init(inputValue) : inputValue
+        this.own = Object.assign(this.own ?? {}, { [key]: ownValue })
       }
     }
   }
 
-  private static _getOwnStore(object: object): ErrorOwnStore | undefined {
-    const record = object as Record<string | symbol, unknown>
-    const existing = record[OWN_SYMBOL]
-    if (existing && typeof existing === 'object') {
-      return existing as ErrorOwnStore
-    }
-    return undefined
-  }
+  // private static _getOwnStore(object: object): ErrorOwnStore | undefined {
+  //   const record = object as Record<string | symbol, unknown>
+  //   const existing = record[OWN_SYMBOL]
+  //   if (existing && typeof existing === 'object') {
+  //     return existing as ErrorOwnStore
+  //   }
+  //   return undefined
+  // }
 
-  private static readonly isOwnProperty = (object: object, key: string): boolean => {
-    const ownStore = this._getOwnStore(object)
-    if (ownStore) {
-      return Object.prototype.hasOwnProperty.call(ownStore, key)
-    }
-    return !!Object.getOwnPropertyDescriptor(object, key)
-  }
-  private static _ownByKey(error: object, key: string): unknown {
-    const ownStore = this._getOwnStore(error)
-    if (ownStore) {
-      return ownStore[key]
-    }
-    return (error as Record<string, unknown>)[key]
-  }
-  private static _flowByKey(error: object, key: string): unknown[] {
-    const causes = this.causes(error, true)
-    const values = new Array<unknown>(causes.length)
-    for (let i = 0; i < causes.length; i += 1) {
-      values[i] = this._ownByKey(causes[i], key)
-    }
-    return values
-  }
+  // private static readonly isOwnProperty = (object: object, key: string): boolean => {
+  //   const ownStore = this._getOwnStore(object)
+  //   if (ownStore) {
+  //     return Object.prototype.hasOwnProperty.call(ownStore, key)
+  //   }
+  //   return !!Object.getOwnPropertyDescriptor(object, key)
+  // }
+  // private static _ownByKey(error: object, key: string): unknown {
+  //   const ownStore = this._getOwnStore(error)
+  //   if (ownStore) {
+  //     return ownStore[key]
+  //   }
+  //   return (error as Record<string, unknown>)[key]
+  // }
+  // private static _flowByKey(error: Error0, key: string): unknown[] {
+  //   const causes = this.causes(error, true)
+  //   const values = new Array<unknown>(causes.length)
+  //   for (let i = 0; i < causes.length; i += 1) {
+  //     values[i] = causes[i].own?.[key]
+  //   }
+  //   return values
+  // }
 
   static own<TThis extends typeof Error0>(this: TThis, error: unknown): ErrorOwnProps<PluginsMapOf<TThis>>
   static own<TThis extends typeof Error0, TKey extends keyof PluginsMapOf<TThis>['props'] & string>(
@@ -814,27 +810,23 @@ export class Error0 extends Error {
   static own(error: unknown, key?: string): unknown {
     const error0 = this.from(error)
     if (key === undefined) {
-      const ownValues: Record<string, unknown> = {}
-      const plugin = this._getResolvedPlugin()
-      for (const ownKey of plugin.propKeys) {
-        ownValues[ownKey] = this._ownByKey(error0, ownKey)
-      }
-      return ownValues
+      return error0.own ?? {}
     }
-    return this._ownByKey(error0, key)
+    return error0.own?.[key]
   }
-  own<TThis extends Error0>(this: TThis): ErrorOwnProps<PluginsMapOfInstance<TThis>>
-  own<TThis extends Error0, TKey extends keyof PluginsMapOfInstance<TThis>['props'] & string>(
-    this: TThis,
-    key: TKey,
-  ): ErrorOwnProps<PluginsMapOfInstance<TThis>>[TKey]
-  own(key?: string): unknown {
-    const ctor = this.constructor as typeof Error0
-    if (key === undefined) {
-      return ctor.own(this)
-    }
-    return ctor._ownByKey(this, key)
-  }
+
+  // own<TThis extends Error0>(this: TThis): ErrorOwnProps<PluginsMapOfInstance<TThis>>
+  // own<TThis extends Error0, TKey extends keyof PluginsMapOfInstance<TThis>['props'] & string>(
+  //   this: TThis,
+  //   key: TKey,
+  // ): ErrorOwnProps<PluginsMapOfInstance<TThis>>[TKey]
+  // own(key?: string): unknown {
+  //   const ctor = this.constructor as typeof Error0
+  //   if (key === undefined) {
+  //     return ctor.own(this)
+  //   }
+  //   return ctor._ownByKey(this, key)
+  // }
 
   static flow<TThis extends typeof Error0, TKey extends keyof PluginsMapOf<TThis>['props'] & string>(
     this: TThis,
@@ -843,26 +835,28 @@ export class Error0 extends Error {
   ): Array<ErrorOwnProps<PluginsMapOf<TThis>>[TKey]>
   static flow(error: unknown, key: string): unknown[] {
     const error0 = this.from(error)
-    return this._flowByKey(error0, key)
+    return error0.flow(key as never)
   }
   flow<TThis extends Error0, TKey extends keyof PluginsMapOfInstance<TThis>['props'] & string>(
     this: TThis,
     key: TKey,
   ): Array<ErrorOwnProps<PluginsMapOfInstance<TThis>>[TKey]>
   flow(key: string): unknown[] {
-    const ctor = this.constructor as typeof Error0
-    return ctor._flowByKey(this, key)
+    const causes = this.causes(true)
+    const values = new Array<unknown>(causes.length)
+    for (let i = 0; i < causes.length; i += 1) {
+      values[i] = causes[i].own?.[key]
+    }
+    return values
   }
 
   static _resolveByKey(error: Error0, key: string, plugin: ErrorPluginResolved): unknown {
     try {
       const options = {
-        get own() {
-          return error.own(key as never)
-        },
         get flow() {
           return error.flow(key as never)
         },
+        own: error.own?.[key],
         error,
       }
       const prop = plugin.props[key]
@@ -1164,7 +1158,7 @@ export class Error0 extends Error {
     first: PluginError0 | 'prop' | 'method' | 'adapt' | 'stack' | 'cause' | 'message',
     key?: unknown,
     value?: ErrorPluginPropOptionsDefinition<unknown> | ErrorPluginMethodFn<unknown>,
-  ): ClassError0 {
+  ): ClassError0<any> {
     if (first instanceof PluginError0) {
       return this._useWithPlugin(this._pluginFromBuilder(first))
     }
@@ -1267,15 +1261,13 @@ export class Error0 extends Error {
       }
       try {
         const options = {
-          get own() {
-            return error0.own(key as never)
-          },
           get flow() {
             return error0.flow(key as never)
           },
           get resolved() {
             return resolveByKey(error0, key, plugin)
           },
+          own: error0.own?.[key],
           error: error0,
           isPublic,
         }

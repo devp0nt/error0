@@ -11,7 +11,7 @@ describe('tagsPlugin', () => {
     const leaf = new AppError('leaf', { tags: ['api', 'retry'], cause: root })
     expect(leaf.tags).toEqual(['api', 'retry', 'db'])
     expectTypeOf(leaf.tags).toEqualTypeOf<string[] | undefined>()
-    expectTypeOf(leaf.own('tags')).toEqualTypeOf<string[] | undefined>()
+    expectTypeOf(leaf.own?.tags).toEqualTypeOf<string[] | undefined>()
     expectTypeOf(leaf.flow('tags')).toEqualTypeOf<Array<string[] | undefined>>()
   })
 
