@@ -361,7 +361,7 @@ describe('Error0', () => {
     new AppError('test', { computed: 123 })
   })
 
-  it('prop without init omits constructor input and infers resolve output', () => {
+  it('prop without init omits constructor input and defaults output to unknown', () => {
     const AppError = Error0.use('prop', 'statusCode', {
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number'),
       serialize: ({ resolved }) => resolved,
@@ -370,7 +370,7 @@ describe('Error0', () => {
 
     const error = new AppError('test')
     expect(error.statusCode).toBe(undefined)
-    expectTypeOf<typeof error.statusCode>().toEqualTypeOf<number | undefined>()
+    expectTypeOf<typeof error.statusCode>().toEqualTypeOf<unknown>()
 
     // @ts-expect-error - statusCode input is disallowed when init is omitted
     // eslint-disable-next-line no-new
@@ -387,7 +387,7 @@ describe('Error0', () => {
 
     const error = new AppError('test')
     expect(error.x).toBe(500)
-    expectTypeOf<typeof error.x>().toEqualTypeOf<number>()
+    expectTypeOf<typeof error.x>().toEqualTypeOf<number | undefined>()
     expectTypeOf(AppError.own(error, 'x')).toEqualTypeOf<number | undefined>()
     expectTypeOf(AppError.flow(error, 'x')).toEqualTypeOf<Array<number | undefined>>()
 
@@ -413,7 +413,7 @@ describe('Error0', () => {
     expect(AppError.own(error, 'code')).toBe(undefined)
     expect(AppError.own(error)).toEqual({ code: undefined })
     expect(error.own()).toEqual({ code: undefined })
-    expectTypeOf<typeof error.code>().toEqualTypeOf<number>()
+    expectTypeOf<typeof error.code>().toEqualTypeOf<number | 'fallback' | undefined>()
     expectTypeOf(AppError.own(error, 'code')).toEqualTypeOf<number | 'fallback' | undefined>()
     expectTypeOf(AppError.own(error)).toEqualTypeOf<{ code: number | 'fallback' | undefined }>()
     expectTypeOf(AppError.flow(error, 'code')).toEqualTypeOf<Array<number | 'fallback' | undefined>>()
@@ -500,10 +500,10 @@ describe('Error0', () => {
     expect('isStatus' in resolvedStatic).toBe(false)
     expect(Object.keys(resolvedInstance)).toEqual(['status', 'code'])
 
-    expectTypeOf(resolvedStatic).toEqualTypeOf<{ status: number; code: Code | undefined }>()
+    expectTypeOf(resolvedStatic).toEqualTypeOf<{ status: number | undefined; code: Code | undefined }>()
   })
 
-  it('prop resolved type can be not undefined with init not provided', () => {
+  it('prop without init defaults resolved type to unknown', () => {
     const AppError = Error0.use('prop', 'x', {
       resolve: ({ flow }) => flow.find((item) => typeof item === 'number') || 500,
       serialize: ({ resolved }) => resolved,
@@ -512,7 +512,7 @@ describe('Error0', () => {
 
     const error = new AppError('test')
     expect(error.x).toBe(500)
-    expectTypeOf<typeof error.x>().toEqualTypeOf<number>()
+    expectTypeOf<typeof error.x>().toEqualTypeOf<unknown>()
 
     Error0.plugin().prop('x', {
       init: (input: number) => input,

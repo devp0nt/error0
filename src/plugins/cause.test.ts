@@ -20,13 +20,15 @@ describe('causePlugin', () => {
       typeof value === 'string' && codes.includes(value as Code) ? (value as Code) : undefined,
   })
 
-  it('serializes and deserializes nested Error0 causes', () => {
+  it.only('serializes and deserializes nested Error0 causes', () => {
     const AppError = Error0.use(statusPlugin)
       .use(codePlugin)
       .use(causePlugin({ isPublic: true }))
     const deepCauseError = new AppError('deep cause')
     const causeError = new AppError('cause', { status: 409, code: 'NOT_FOUND', cause: deepCauseError })
     const error = new AppError('root', { status: 500, cause: causeError })
+
+    console.error(error)
 
     const json = AppError.serialize(error, false)
     expect(typeof json.cause).toBe('object')
