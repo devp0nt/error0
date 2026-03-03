@@ -1,4 +1,3 @@
-// Юз должен мочь принять фалси вэлью, тогда резолвед должен быть резолвед или андефайнед
 // Проверить как в браузере такая ошибка выводится
 // Добавить кеш на резолвед, который сбрасывается при оверрайдах
 
@@ -713,15 +712,9 @@ export class Error0 extends Error {
         continue
       }
       Object.defineProperty(this, key, {
-        get: () =>
-          // prop.resolve({
-          //   own: this.own?.[key],
-          //   flow: this.flow(key as never),
-          //   error: this,
-          // }),
-          Error0._resolveByKey(this, key, plugin),
+        get: () => Error0._resolveByKey(this, key, plugin),
         set: (value) => {
-          this.own = Object.assign(this.own ?? {}, { [key]: value })
+          this.assign({ [key]: value } as never)
         },
         enumerable: true,
         configurable: true,
@@ -729,7 +722,7 @@ export class Error0 extends Error {
       if (key in input) {
         const inputValue = (input as Record<string, unknown>)[key]
         const ownValue = typeof prop.init === 'function' ? prop.init(inputValue) : inputValue
-        this.own = Object.assign(this.own ?? {}, { [key]: ownValue })
+        this.assign({ [key]: ownValue } as never)
       }
     }
     Error0.fixStack(input.cause)
@@ -939,7 +932,7 @@ export class Error0 extends Error {
     for (const adapt of plugin.adapt) {
       const adapted = adapt(error as any)
       if (adapted && typeof adapted === 'object') {
-        Object.assign(error as unknown as Record<string, unknown>, adapted)
+        error.assign(adapted)
       }
     }
     return error
