@@ -395,6 +395,8 @@ type BuilderError0<TProps extends ErrorPluginProps, TMethods extends ErrorPlugin
 
 type PluginOfBuilder<TBuilder> =
   TBuilder extends PluginError0<infer TProps, infer TMethods> ? ErrorPlugin<TProps, TMethods> : never
+type BuilderPropsOf<TBuilder> = TBuilder extends PluginError0<infer TProps, any> ? TProps : Record<never, never>
+type BuilderMethodsOf<TBuilder> = TBuilder extends PluginError0<any, infer TMethods> ? TMethods : Record<never, never>
 
 export class PluginError0<
   TProps extends ErrorPluginProps = Record<never, never>,
@@ -477,11 +479,26 @@ export class PluginError0<
   use(kind: 'stack', value: ErrorPluginStack<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods>
   use(kind: 'cause', value: ErrorPluginCause<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods>
   use(kind: 'message', value: ErrorPluginMessage<BuilderError0<TProps, TMethods>>): PluginError0<TProps, TMethods>
+  use<TBuilder extends PluginError0<any, any>>(
+    plugin: TBuilder,
+  ): PluginError0<TProps & BuilderPropsOf<TBuilder>, TMethods & BuilderMethodsOf<TBuilder>>
   use(
-    kind: 'prop' | 'method' | 'adapt' | 'stack' | 'cause' | 'message',
-    keyOrValue: unknown,
+    kindOrPlugin: 'prop' | 'method' | 'adapt' | 'stack' | 'cause' | 'message' | PluginError0<any, any>,
+    keyOrValue?: unknown,
     value?: ErrorPluginPropOptionsDefinition<unknown, unknown, any> | ErrorPluginMethodFn<unknown, unknown[], any>,
   ): PluginError0<any, any> {
+    if (kindOrPlugin instanceof PluginError0) {
+      const nestedPlugin = kindOrPlugin._plugin
+      return new PluginError0({
+        props: { ...(this._plugin.props ?? {}), ...(nestedPlugin.props ?? {}) },
+        methods: { ...(this._plugin.methods ?? {}), ...(nestedPlugin.methods ?? {}) },
+        adapt: [...(this._plugin.adapt ?? []), ...(nestedPlugin.adapt ?? [])],
+        stack: nestedPlugin.stack ?? this._plugin.stack,
+        cause: nestedPlugin.cause ?? this._plugin.cause,
+        message: nestedPlugin.message ?? this._plugin.message,
+      })
+    }
+    const kind = kindOrPlugin
     const nextProps: ErrorPluginProps = { ...(this._plugin.props ?? {}) }
     const nextMethods: ErrorPluginMethods = { ...(this._plugin.methods ?? {}) }
     const nextAdapt: Array<ErrorPluginAdaptFn<Error0, Record<string, unknown>>> = [...(this._plugin.adapt ?? [])]

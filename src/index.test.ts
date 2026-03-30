@@ -112,6 +112,17 @@ describe('Error0', () => {
     `)
   })
 
+  it('allows composing plugin builders inside plugin builders', () => {
+    const combinedPlugin = Error0.plugin().use(statusPlugin).use(codePlugin)
+    const AppError = Error0.use(combinedPlugin)
+    const error = new AppError('test', { status: 400, code: 'NOT_FOUND' })
+
+    expect(error.status).toBe(400)
+    expect(error.code).toBe('NOT_FOUND')
+    expectTypeOf<typeof error.status>().toEqualTypeOf<number | undefined>()
+    expectTypeOf<typeof error.code>().toEqualTypeOf<'NOT_FOUND' | 'BAD_REQUEST' | 'UNAUTHORIZED' | undefined>()
+  })
+
   it('twice used Error0 extends previous by types', () => {
     const AppError1 = Error0.use(statusPlugin)
     const AppError2 = AppError1.use(codePlugin)
