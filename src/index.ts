@@ -609,6 +609,7 @@ export class Error0 extends Error {
   protected static _plugins: ErrorPlugin[] = []
   protected static _resolvedPlugin?: ErrorPluginResolved
   declare own?: ErrorOwnStore
+  declare readonly resolveByKeyCache: Map<string, unknown>
 
   private static readonly _emptyPlugin: ErrorPluginResolved = {
     props: {},
@@ -712,6 +713,12 @@ export class Error0 extends Error {
     super(input.message, { cause: input.cause })
     this.name = 'Error0'
 
+    Object.defineProperty(this, 'resolveByKeyCache', {
+      value: new Map<string, unknown>(),
+      writable: false,
+      enumerable: false,
+      configurable: false,
+    })
     const ctor = this.constructor as typeof Error0
     const plugin = ctor._getResolvedPlugin()
     // const ownStore = Object.create(null) as ErrorOwnStore
@@ -789,12 +796,12 @@ export class Error0 extends Error {
     return values
   }
 
-  private readonly _resolveByKeyCache = new Map<string, unknown>()
+  // private readonly [_resolveByKeyCacheSymbol] = new Map<string, unknown>()
   private _resolveByKey(key: string, plugin: ErrorPluginResolved): unknown {
     // eslint-disable-next-line consistent-this, @typescript-eslint/no-this-alias
     const error = this
-    if (this._resolveByKeyCache.has(key)) {
-      return this._resolveByKeyCache.get(key)
+    if (this.resolveByKeyCache.has(key)) {
+      return this.resolveByKeyCache.get(key)
     }
     const value = (() => {
       try {
@@ -818,7 +825,7 @@ export class Error0 extends Error {
         return undefined
       }
     })()
-    this._resolveByKeyCache.set(key, value)
+    this.resolveByKeyCache.set(key, value)
     return value
   }
 
@@ -946,7 +953,7 @@ export class Error0 extends Error {
   assign<TThis extends Error0>(this: TThis, props: Partial<ErrorOwnProps<PluginsMapOfInstance<TThis>>>): TThis
   assign(props: Record<string, unknown>): this {
     this.own = Object.assign(this.own ?? {}, props)
-    this._resolveByKeyCache.clear()
+    this.resolveByKeyCache.clear()
     // const values = Object.values(props)
     // if (values.every((value) => value === undefined)) {
     //   this.own = undefined

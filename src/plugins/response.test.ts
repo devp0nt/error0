@@ -14,6 +14,17 @@ describe('responsePlugin', () => {
     expectTypeOf<typeof error.response>().toEqualTypeOf<Response | undefined>()
   })
 
+  it('not loose reponse after ,from()', () => {
+    const AppError = Error0.use(responsePlugin())
+    const response = new Response('teapot', { status: 418 })
+
+    const error = AppError.from(new AppError('http error', { response }))
+
+    expect(error.response).toBe(response)
+    expect(error.response?.status).toBe(418)
+    expectTypeOf<typeof error.response>().toEqualTypeOf<Response | undefined>()
+  })
+
   it('can be found in flow', () => {
     const AppError = Error0.use(responsePlugin())
     const response = new Response('teapot', { status: 418 })
