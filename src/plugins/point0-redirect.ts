@@ -83,17 +83,26 @@ class RedirectTask<TAdapterNavigateOptions extends AdapterNavigateOptions = Adap
 // TODO:ASAP user RedirectTask from point0/core
 
 export const redirectPlugin = <TAdapterNavigateOptions extends AdapterNavigateOptions = AdapterNavigateOptions>() => {
-  return Error0.plugin().prop('redirect', {
-    init: (redirect: RedirectTaskSerialized<TAdapterNavigateOptions> | RedirectTask<TAdapterNavigateOptions>) =>
-      RedirectTask.from(redirect),
-    resolve: ({ flow }) => flow.find(Boolean),
-    serialize: ({ resolved }) => resolved?.serialize(),
-    deserialize: ({ value }) => {
-      try {
-        return RedirectTask.from(value as never)
-      } catch (error) {
-        return undefined
+  return Error0.plugin()
+    .prop('redirect', {
+      init: (redirect: RedirectTaskSerialized<TAdapterNavigateOptions> | RedirectTask<TAdapterNavigateOptions>) =>
+        RedirectTask.from(redirect),
+      resolve: ({ flow }) => flow.find(Boolean),
+      serialize: ({ resolved }) => resolved?.serialize(),
+      deserialize: ({ value }) => {
+        try {
+          return RedirectTask.from(value as never)
+        } catch (error) {
+          return undefined
+        }
+      },
+    })
+    .adapt((error) => {
+      const cause = error.cause
+      if (cause instanceof RedirectTask) {
+        error.redirect = cause
+        error.message = `Redirect to ${cause.to}`
+        delete error.cause
       }
-    },
-  })
+    })
 }

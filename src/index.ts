@@ -302,6 +302,8 @@ type ErrorPluginResolved = {
   propEntries: Array<[string, ErrorPluginPropOptions<unknown>]>
   methodEntries: Array<[string, ErrorPluginMethodFn<unknown>]>
 }
+type Error0Mark = string | symbol
+const ERROR0_MARK = Symbol.for('@devp0nt/error0.mark')
 const RESERVED_STACK_PROP_ERROR = 'Error0: "stack" is a reserved prop key. Use .stack(...) plugin API instead'
 const RESERVED_MESSAGE_PROP_ERROR = 'Error0: "message" is a reserved prop key. Use .message(...) plugin API instead'
 
@@ -548,9 +550,10 @@ type ErrorOwnStore = Record<string, unknown>
 export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> = {
   MAX_CAUSES_DEPTH: number
   new (message: string, input?: ErrorInput<TPluginsMap>): InstanceError0<TPluginsMap>
-  new (input: { message: string } & ErrorInput<TPluginsMap>): InstanceError0<TPluginsMap>
+  new (input: { message?: string } & ErrorInput<TPluginsMap>): InstanceError0<TPluginsMap>
   readonly __pluginsMap?: TPluginsMap
   from: <TThis extends ClassError0<any>>(this: TThis, error: unknown) => InstanceType<TThis>
+  is: <TThis extends ClassError0<any>>(this: TThis, error: unknown) => error is InstanceType<TThis>
   round: <TThis extends ClassError0<any>>(this: TThis, error: unknown, isPublic?: boolean) => InstanceType<TThis>
   // flat: <TThis extends ClassError0<any>>(this: TThis, error: unknown, keepCauses?: boolean) => InstanceType<TThis>
   causes: {
@@ -572,6 +575,7 @@ export type ClassError0<TPluginsMap extends ErrorPluginsMap = EmptyPluginsMap> =
     error: object,
     key: TKey,
   ) => Array<ErrorOwnProps<TPluginsMap>[TKey]>
+  mark: <TThis extends ClassError0<any>>(this: TThis, mark: Error0Mark) => ClassError0<PluginsMapOf<TThis>>
   use: {
     <TBuilder extends PluginError0>(
       plugin: TBuilder,
@@ -701,16 +705,16 @@ export class Error0 extends Error {
   }
 
   constructor(message: string, input?: ErrorInput<EmptyPluginsMap>)
-  constructor(input: { message: string } & ErrorInput<EmptyPluginsMap>)
+  constructor(input: { message?: string } & ErrorInput<EmptyPluginsMap>)
   constructor(
     ...args:
       | [message: string, input?: ErrorInput<EmptyPluginsMap>]
-      | [{ message: string } & ErrorInput<EmptyPluginsMap>]
+      | [{ message?: string } & ErrorInput<EmptyPluginsMap>]
   ) {
     const [first, second] = args
     const input = typeof first === 'string' ? { message: first, ...(second ?? {}) } : first
 
-    super(input.message, { cause: input.cause })
+    super(input.message || 'Unknown error', { cause: input.cause })
     this.name = 'Error0'
 
     Object.defineProperty(this, 'resolveByKeyCache', {
@@ -720,6 +724,15 @@ export class Error0 extends Error {
       configurable: false,
     })
     const ctor = this.constructor as typeof Error0
+    const mark = ctor._getMark()
+    if (mark !== undefined) {
+      Object.defineProperty(this, ERROR0_MARK, {
+        value: mark,
+        writable: false,
+        enumerable: false,
+        configurable: false,
+      })
+    }
     const plugin = ctor._getResolvedPlugin()
     // const ownStore = Object.create(null) as ErrorOwnStore
     // Object.defineProperty(this, OWN_SYMBOL, { value: ownStore, writable: true, enumerable: false, configurable: true })
@@ -879,7 +892,17 @@ export class Error0 extends Error {
   }
 
   static is<T extends typeof Error0>(this: T, error: unknown): error is InstanceType<T> {
-    return error instanceof this
+    if (error instanceof this) {
+      return true
+    }
+    if (!(error instanceof Error)) {
+      return false
+    }
+    const mark = this._getMark()
+    if (mark === undefined) {
+      return false
+    }
+    return (error as unknown as { [key: symbol]: unknown })[ERROR0_MARK] === mark
   }
 
   static isSerialized(error: unknown): error is Record<string, unknown> {
@@ -1028,6 +1051,26 @@ export class Error0 extends Error {
           ? error.message
           : undefined) || 'Unknown error'
     )
+  }
+
+  private static _getMark(this: typeof Error0): Error0Mark | undefined {
+    const mark = (this as unknown as { [key: symbol]: unknown })[ERROR0_MARK]
+    return typeof mark === 'string' || typeof mark === 'symbol' ? mark : undefined
+  }
+
+  static mark<TThis extends typeof Error0>(this: TThis, mark: Error0Mark): ClassError0<PluginsMapOf<TThis>> {
+    if (typeof mark !== 'string' && typeof mark !== 'symbol') {
+      throw new Error('Error0.mark(mark) expects mark to be a string or symbol')
+    }
+    const Base = this as unknown as typeof Error0
+    const Error0Marked = class Error0 extends Base {}
+    Object.defineProperty(Error0Marked, ERROR0_MARK, {
+      value: mark,
+      writable: false,
+      enumerable: false,
+      configurable: true,
+    })
+    return Error0Marked as unknown as ClassError0<PluginsMapOf<TThis>>
   }
 
   private static _useWithPlugin(

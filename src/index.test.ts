@@ -1,8 +1,8 @@
 import { describe, expect, expectTypeOf, it } from 'bun:test'
 import * as assert from 'node:assert'
 import z, { ZodError } from 'zod'
-import type { ClassError0 } from './index.js'
 import { Error0 } from './index.js'
+import type { ClassError0 } from './index.js'
 
 const fixStack = (stack: string | undefined) => {
   if (!stack) {
@@ -71,6 +71,40 @@ describe('Error0', () => {
           at <anonymous> (...)"
     `)
     expectTypeOf<typeof AppError>().toExtend<ClassError0>()
+  })
+
+  it('can have mark, which will be used when calling .is to detect if it is error0 error', () => {
+    const AppError1 = Error0.mark(Symbol.for('AppError')).use('prop', 'status', {
+      init: (input: number) => input,
+      resolve: ({ flow }) => flow.find(Boolean),
+      serialize: ({ resolved }) => resolved,
+      deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
+    })
+
+    const AppError2 = AppError1.use(codePlugin)
+    const error1 = new AppError1('test', { status: 401 })
+    const error2 = new AppError2('test', { code: 'NOT_FOUND', status: 402 })
+    expect(error1).toBeInstanceOf(AppError1)
+    expect(error1).not.toBeInstanceOf(AppError2)
+    expect(error2).toBeInstanceOf(AppError1)
+    expect(error2).toBeInstanceOf(AppError2)
+    expect(AppError1.is(error1)).toBe(true)
+    expect(AppError2.is(error1)).toBe(true)
+    expect(AppError1.is(error2)).toBe(true)
+    expect(AppError2.is(error2)).toBe(true)
+  })
+
+  it('can have no message', () => {
+    const AppError = Error0.use('prop', 'status', {
+      init: (input: number) => input,
+      resolve: ({ flow }) => flow.find(Boolean),
+      serialize: ({ resolved }) => resolved,
+      deserialize: ({ value }) => (typeof value === 'number' ? value : undefined),
+    })
+
+    const error = new AppError({ status: 400 })
+    expect(error.status).toBe(400)
+    expect(error.message).toBe('Unknown error')
   })
 
   it('class helpers prop/method/adapt mirror use API', () => {
