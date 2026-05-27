@@ -760,22 +760,29 @@ export class Error0 extends Error {
     if (shouldAdapt) {
       ctor._applyAdapt(this)
     }
-    Error0.fixStack(input.cause)
+    // Walk starting from `this` so the Error0's own stack also gets remapped, not just causes.
+    // The walk then continues through this.cause (= input.cause) and any nested causes.
+    Error0.fixStack(this)
   }
 
-  private static fixStack(cause: unknown): void {
-    try {
-      if (process.env.NODE_ENV !== 'production') {
-        let nextCause = cause
-        let depth = 0
-        const maxDepth = 99
-        while (nextCause && depth < maxDepth) {
-          ;(globalThis as any).__ERROR0_FIX_STACKTRACE__(nextCause)
-          nextCause = (nextCause as any).cause
-          depth++
-        }
-      }
-    } catch {}
+  private static fixStack(start: unknown): void {
+    if (process.env.NODE_ENV === 'production') return
+    const hook = (globalThis as any).__ERROR0_FIX_STACKTRACE__
+    if (typeof hook !== 'function') return
+    // Walk `start` + its cause chain, calling the hook on each link.
+    // seen-set guards against circular `cause` graphs; depth cap is a belt-and-braces backstop.
+    const seen = new Set<unknown>()
+    const maxDepth = 99
+    let next: unknown = start
+    let depth = 0
+    while (next && depth < maxDepth && !seen.has(next)) {
+      seen.add(next)
+      try {
+        hook(next)
+      } catch {}
+      next = (next as { cause?: unknown }).cause
+      depth++
+    }
   }
 
   static own<TThis extends typeof Error0>(this: TThis, error: unknown): ErrorOwnProps<PluginsMapOf<TThis>>
