@@ -1,12 +1,12 @@
-# @devp0nt/error0
+# @1gr14/error0
 
 > One typed, serializable `Error` class for errors that travel across your app.
 
-[![CI](https://github.com/devp0nt/error0/actions/workflows/ci.yml/badge.svg)](https://github.com/devp0nt/error0/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/@devp0nt/error0.svg)](https://www.npmjs.com/package/@devp0nt/error0)
-[![coverage](https://codecov.io/gh/devp0nt/error0/branch/main/graph/badge.svg)](https://codecov.io/gh/devp0nt/error0)
-[![gzip](https://deno.bundlejs.com/badge?q=@devp0nt/error0)](https://bundlejs.com/?q=@devp0nt/error0)
-[![license](https://img.shields.io/npm/l/@devp0nt/error0.svg)](./LICENSE)
+[![CI](https://github.com/1gr14/error0/actions/workflows/ci.yml/badge.svg)](https://github.com/1gr14/error0/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@1gr14/error0.svg)](https://www.npmjs.com/package/@1gr14/error0)
+[![coverage](https://codecov.io/gh/1gr14/error0/branch/main/graph/badge.svg)](https://codecov.io/gh/1gr14/error0)
+[![gzip](https://deno.bundlejs.com/badge?q=@1gr14/error0)](https://bundlejs.com/?q=@1gr14/error0)
+[![license](https://img.shields.io/npm/l/@1gr14/error0.svg)](./LICENSE)
 
 <!-- docs:start -->
 
@@ -18,14 +18,14 @@ chains, and the whole error **serializes** to JSON and back — so it survives a
 trip across a process, a queue, or the network.
 
 ```ts
-import { Error0 } from '@devp0nt/error0'
-import { statusPlugin } from '@devp0nt/error0/plugins/status'
-import { codePlugin } from '@devp0nt/error0/plugins/code'
-import { metaPlugin } from '@devp0nt/error0/plugins/meta'
-import { responsePlugin } from '@devp0nt/error0/plugins/response'
-import { redirectPlugin } from '@devp0nt/error0/plugins/point0-redirect'
-import { flatOriginalPlugin } from '@devp0nt/error0/plugins/flat-original'
-import { expectedPlugin } from '@devp0nt/error0/plugins/expected'
+import { Error0 } from '@1gr14/error0'
+import { statusPlugin } from '@1gr14/error0/plugins/status'
+import { codePlugin } from '@1gr14/error0/plugins/code'
+import { metaPlugin } from '@1gr14/error0/plugins/meta'
+import { responsePlugin } from '@1gr14/error0/plugins/response'
+import { redirectPlugin } from '@1gr14/error0/plugins/point0-redirect'
+import { flatOriginalPlugin } from '@1gr14/error0/plugins/flat-original'
+import { expectedPlugin } from '@1gr14/error0/plugins/expected'
 
 // One error class for your whole app — compose built-in plugins and your own.
 export const AppError = Error0.mark('AppError')
@@ -65,7 +65,7 @@ restored.code // 'UNAUTHORIZED'
 ## Install
 
 ```sh
-bun add @devp0nt/error0
+bun add @1gr14/error0
 # or: npm install / pnpm add / yarn add
 ```
 
@@ -78,7 +78,7 @@ Start here, because this is the problem `error0` was built for. You catch an
 every time:
 
 ```ts
-import { Error0 } from '@devp0nt/error0'
+import { Error0 } from '@1gr14/error0'
 
 Error0.from(new Error('boom')) // wraps the native error, keeps it as `cause`
 Error0.from('boom') // wraps the string
@@ -282,13 +282,13 @@ const ApiError = AppError.use(tagsPlugin()) // keeps status + code, adds tags
 ## Batteries included
 
 The common fields are already written. Import only what you use, from
-`@devp0nt/error0/plugins/*`:
+`@1gr14/error0/plugins/*`:
 
 ```ts
-import { Error0 } from '@devp0nt/error0'
-import { statusPlugin } from '@devp0nt/error0/plugins/status'
-import { codePlugin } from '@devp0nt/error0/plugins/code'
-import { tagsPlugin } from '@devp0nt/error0/plugins/tags'
+import { Error0 } from '@1gr14/error0'
+import { statusPlugin } from '@1gr14/error0/plugins/status'
+import { codePlugin } from '@1gr14/error0/plugins/code'
+import { tagsPlugin } from '@1gr14/error0/plugins/tags'
 
 const AppError = Error0.use(statusPlugin())
   .use(codePlugin({ codes: ['NOT_FOUND', 'BAD_REQUEST'] as const }))
@@ -316,7 +316,7 @@ err.hasTag('user-error') // true  ← method from tagsPlugin
 | [`messageMergePlugin`](src/plugins/message-merge.ts) | merged message on serialize         | Join the message chain when serializing.                     |
 | [`stackMergePlugin`](src/plugins/stack-merge.ts)     | merged stack on serialize           | Join the stack chain when serializing.                       |
 | [`flatOriginalPlugin`](src/plugins/flat-original.ts) | adapt hook                          | Unwrap a native `Error` cause — adopt its message and stack. |
-| [`redirectPlugin`](src/plugins/point0-redirect.ts)   | `redirect`                          | Attach a navigation redirect (for `@devp0nt/point0`).        |
+| [`redirectPlugin`](src/plugins/point0-redirect.ts)   | `redirect`                          | Attach a navigation redirect (for `point0`).                 |
 
 ## Send an error across the wire
 
@@ -377,7 +377,7 @@ By default a cause isn't serialized — it can't always survive JSON.
 `variants`:
 
 ```ts
-import { causePlugin } from '@devp0nt/error0/plugins/cause'
+import { causePlugin } from '@1gr14/error0/plugins/cause'
 
 const AppError = Error0.use(causePlugin())
 // now `serialize(false)` includes the cause, and `from()` rebuilds it
@@ -506,9 +506,10 @@ const statusPlugin = () =>
 
 ## Community
 
-Questions, bugs, or want to hang with other builders? Join the devp0nt community
-— one hub for all our open-source projects, this one included. Get help, share
-what you built, or just say hi: [p0nt.dev/community](https://p0nt.dev/community)
+Questions, bugs, or want to hang with other builders? Join the 1gr14 community —
+one hub for all our open-source projects, this one included. Get help, share
+what you built, or just say hi:
+[1gr14.dev/community](https://1gr14.dev/community)
 
 ## Contributing
 

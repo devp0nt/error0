@@ -10,7 +10,7 @@ issues, and reviewing pull requests all count.
 You need [Bun](https://bun.sh) 1+.
 
 ```sh
-git clone https://github.com/devp0nt/error0.git
+git clone https://github.com/1gr14/error0.git
 cd error0
 bun install
 ```

@@ -39,7 +39,7 @@ body:
   - type: input
     id: error0-version
     attributes:
-      label: '@devp0nt/error0 version'
+      label: '@1gr14/error0 version'
       placeholder: e.g. 0.1.0
     validations:
       required: true

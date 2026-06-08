@@ -305,7 +305,7 @@ type ErrorPluginResolved = {
 type Error0Mark = string | symbol
 // Registered (global) symbol so a marked error is recognized by `Error0.is()`
 // even across separate bundles/realms that each ship their own copy of error0.
-const ERROR0_MARK = Symbol.for('@devp0nt/error0.mark')
+const ERROR0_MARK = Symbol.for('@1gr14/error0.mark')
 const SKIP_ADAPT = Symbol('Error0.skipAdapt')
 const RESERVED_STACK_PROP_ERROR = 'Error0: "stack" is a reserved prop key. Use .stack(...) plugin API instead'
 const RESERVED_MESSAGE_PROP_ERROR = 'Error0: "message" is a reserved prop key. Use .message(...) plugin API instead'

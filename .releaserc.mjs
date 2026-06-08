@@ -35,7 +35,7 @@ export default {
     [
       '@semantic-release/github',
       {
-        repositoryUrl: 'https://github.com/devp0nt/error0',
+        repositoryUrl: 'https://github.com/1gr14/error0',
       },
     ],
   ].filter(Boolean),

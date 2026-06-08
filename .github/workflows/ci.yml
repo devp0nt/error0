@@ -50,7 +50,7 @@ jobs:
         uses: codecov/codecov-action@v6
         with:
           files: ./coverage/lcov.info
-          slug: devp0nt/error0
+          slug: 1gr14/error0
           use_oidc: true # tokenless: GitHub OIDC + the Codecov GitHub App (no stored token)
           fail_ci_if_error: false # coverage is informational for now — never fail CI on it
 
@@ -112,7 +112,7 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
-          scope: '@devp0nt'
+          scope: '@1gr14'
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2

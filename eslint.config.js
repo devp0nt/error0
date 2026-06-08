@@ -32,7 +32,7 @@ export default defineConfig([
       '@typescript-eslint/only-throw-error': [
         'error',
         {
-          allow: [{ from: 'package', name: 'Error0', package: '@devp0nt/error0' }],
+          allow: [{ from: 'package', name: 'Error0', package: '@1gr14/error0' }],
         },
       ],
       '@typescript-eslint/consistent-type-imports': ['error', { disallowTypeAnnotations: false }],
