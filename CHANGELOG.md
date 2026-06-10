@@ -1,3 +1,10 @@
+# [0.2.0](https://github.com/1gr14/error0/compare/v0.1.0...v0.2.0) (2026-06-10)
+
+
+### Features
+
+* add codeStatusPlugin — code and status in one plugin, status auto-filled from a code → status map ([85a6b87](https://github.com/1gr14/error0/commit/85a6b87512104f850e5756e9e31f43492901d886))
+
 # [0.1.0](https://github.com/1gr14/error0/compare/v0.0.0...v0.1.0) (2026-06-08)
 
 
