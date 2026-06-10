@@ -307,6 +307,7 @@ err.hasTag('user-error') // true  ← method from tagsPlugin
 | ---------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------ |
 | [`statusPlugin`](src/plugins/status.ts)              | `status: number`                    | HTTP-style status, with optional enum and strict mode.       |
 | [`codePlugin`](src/plugins/code.ts)                  | `code: string`                      | Machine-readable code, with an optional whitelist.           |
+| [`codeStatusPlugin`](src/plugins/code-status.ts)     | `code: string`, `status: number`    | Both in one: a `{ CODE: status }` map auto-fills the status. |
 | [`tagsPlugin`](src/plugins/tags.ts)                  | `tags: string[]`, `hasTag()`        | Dedup'd tags merged across the cause chain.                  |
 | [`metaPlugin`](src/plugins/meta.ts)                  | `meta: Record<string, unknown>`     | JSON-safe metadata, merged across causes (nearest wins).     |
 | [`expectedPlugin`](src/plugins/expected.ts)          | `expected: boolean`, `isExpected()` | Flag errors that aren't bugs, so you don't log them as such. |
