@@ -1,3 +1,10 @@
+# [0.4.0](https://github.com/1gr14/error0/compare/v0.3.0...v0.4.0) (2026-06-11)
+
+
+### Features
+
+* stackPlugin — the default stack gate as a plugin, transport-switchable ([9849595](https://github.com/1gr14/error0/commit/98495954c4de4914f73782435cbf072e53ecd773))
+
 # [0.3.0](https://github.com/1gr14/error0/compare/v0.2.0...v0.3.0) (2026-06-11)
 
 
